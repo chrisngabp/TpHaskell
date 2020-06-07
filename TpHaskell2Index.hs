@@ -7,14 +7,14 @@ instance Functor Quizas where
     fmap f (OK x) = OK $ f x
 
 instance Applicative Quizas where
-    pure x			= OK x
-    _ <*> Error x 	= Error x
-    Error x <*> _	= Error x
-    OK f <*> OK x	= OK $ f x
+    pure x          = OK x
+    _ <*> Error x   = Error x
+    Error x <*> _   = Error x
+    OK f <*> OK x   = OK $ f x
 
 instance Monad Quizas where
     Error x >>= _ = Error x
-    OK x >>= f 	  = f x
+    OK x >>= f    = f x
 
 data Archivo = Archivo NombreM [Importacion] [Data] [Clase] [Instancia] [Funcion]
 
@@ -23,14 +23,14 @@ instance Show Archivo where
 
 -- instance Eq Archivo where
 
-data Importacion = Importacion NombreM String (Maybe Comentario) -- "Data.List" "import Data.List (inits)"
+data Importacion = Importacion NombreM Comentario deriving (Show) -- "Data.List" "import Data.List (inits)"
 
 data Codigo = CD Data | CC Clase | CI Instancia | CF Funcion
 
-data Data = Data NombreDeDato String
+data Data = Data NombreDeDato String deriving (Show)
 type NombreDeDato = String
 
-data Clase = Clase (Maybe HerenciaClase) NombreClase Firma (Maybe Where)
+data Clase = Clase (Maybe HerenciaClase) NombreClase Firma (Maybe Where) deriving (Show)
 type NombreClase = String
 type HerenciaClase = String 
 
@@ -39,32 +39,39 @@ type TipoInstancia = String
 
 -- INICIO Datas y types de Funcion
 
-data Funcion = Funcion NombreF (Maybe Firma) [Patron] (Maybe Comentario)
+data Funcion = Funcion NombreF (Maybe Firma) [Patron] Comentario deriving (Show)
 type Firma = String -- Sinonimos (type)
 
-data Patron = Patron (Either Bloque [Pipe]) (Maybe Where) (Maybe Comentario)
+data Patron = Patron (Either Bloque [Pipe]) (Maybe Where) Comentario deriving (Show)
 type Where = [Funcion]
-data Bloque = 	Expresion Resultado | 
+data Bloque =   Expresion Resultado | 
                 LetIn [Funcion] Bloque | 
                 IfThenElse Bloque Bloque Bloque | 
-                Case [Bloque]
+                Case [Bloque] deriving (Show)
 
 type Resultado = String
 type ResultadoBool = String
-data Pipe = Pipe ResultadoBool Bloque 
+data Pipe = Pipe ResultadoBool Bloque deriving (Show)
 
 -- FIN Datas y types de Funcion
 
 type Comentario = Maybe String
 class ConComentario a where
     comentario :: a -> Maybe Comentario
---    agregoComentarios :: a -> c -> c
 
---instance ConComentario Funcion where
---    agregoComentarios c' (Funcion nf mf lp mc) = Funcion nf mf lp (maybeConcatenoComentario c' mc)
+{-
+class ConComentario a where
+    comentario :: a -> Maybe Comentario
+    agregoComentario :: Comentario -> a -> a
+-}
 
-data NombreM = NombreM String -- Nombre válido para módulos, datos, etc.
-data NombreF = NombreF String | OperadorF String -- Nombre válido para funciones
+{-
+instance ConComentario Funcion where
+    agregoComentario c' (Funcion f x w mc) = Funcion f x w (maybeConcateno c' mc)
+-}
+
+data NombreM = NombreM String deriving (Show) -- Nombre válido para módulos, datos, etc.
+data NombreF = NombreF String | OperadorF String deriving (Show) -- Nombre válido para funciones
 data Nombre = NM NombreM | NF NombreF
 
 data Opciones = Opciones {largoLinea :: Int, anchoTab :: Int, comentarioInline :: Bool, compacto :: Bool, colores :: Bool} -- Pueden agregar otros parámetros.
@@ -82,20 +89,18 @@ ConComentario: Clase con los datos que pueden contener comentario.
 -
 -}
 
--- CLASE 1 JUNIO
-data Comentado a = Comentado String a
+-- Generales
+esCodigo :: TipoCodigo -> Bool
+esCodigo (TCCod _) = True
+esCodigo _          = False
 
-comentarioAString :: Comentario -> String
-comentarioAString Nothing = ""
-comentarioAString (Just x) = x
+tipoCodigoAChr :: TipoCodigo -> Char
+tipoCodigoAChr (TCCod x) = x
+tipoCodigoAChr (TCComIL x) = x
+tipoCodigoAChr (TCComML x) = x
 
-stringAComentario :: String -> Comentario
-stringAComentario [] = Nothing
-stringAComentario x = Just x
+fromQuizas (OK x) = x
 
---Funcion (stringANombreF nom) .. .. (stringAComentario str)
-
--- lineas = lines
 lineas :: String -> [String]
 lineas ""           = []
 lineas xs
@@ -108,6 +113,22 @@ filtroNulas = filter (not . null) -- comentario
 data Estoy = Normal | CML | CIL | Comillas
 data TipoCodigo = TCComIL Char | TCComML Char | TCCod Char deriving (Show)
 
+maybeConcateno :: String -> Maybe String -> Maybe String
+maybeConcateno c' Nothing = Just c'
+maybeConcateno c' (Just c) = Just $ c ++ "\n" ++ c'
+
+-- Comentarios
+data Comentado a = Comentado String a
+
+comentarioAString :: Comentario -> String
+comentarioAString Nothing = ""
+comentarioAString (Just x) = x
+
+stringAComentario :: String -> Comentario
+stringAComentario [] = Nothing
+stringAComentario x = Just x
+
+-- detecto comentario
 dCom :: String -> Quizas [TipoCodigo]
 dCom xs                 = dCom' Normal xs --
 
@@ -126,37 +147,7 @@ dCom' Comillas ('"':xs)      = (TCCod '"' :) <$> dCom' Normal xs
 dCom' Normal (x:xs)          = (TCCod x :) <$> dCom' Normal xs
 dCom' Comillas (x:xs)        = (TCCod x :) <$> dCom' Comillas xs
 
---(:) :: a -> Quizas [a] -> Quizas [a]
--- <$> = `fmap`
---
-esCodigo :: TipoCodigo -> Bool
-esCodigo (TCCod _) = True
-esCodigo _          = False
-
-tipoCodigoAChr :: TipoCodigo -> Char
-tipoCodigoAChr (TCCod x) = x
-tipoCodigoAChr (TCComIL x) = x
-tipoCodigoAChr (TCComML x) = x
-
-fromQuizas (OK x) = x
-{-
-class ConComentario a where
-    comentario :: a -> Maybe Comentario
-    agregoComentario :: Comentario -> a -> a
--}
-maybeConcateno :: String -> Maybe String -> Maybe String
-maybeConcateno c' Nothing = Just c'
-maybeConcateno c' (Just c) = Just $ c ++ "\n" ++ c'
-{-
-instance ConComentario Funcion where
-    agregoComentario c' (Funcion f x w mc) = Funcion f x w (maybeConcateno c' mc)
--}
-
---leoArchivo
--- "f x = 1 \ng y = 2"
--- [TCACod "f x = 1 ",TCACom "comentario",TCACod "g y = 2"]
-agrupoComentarios = aC
-
+-- agrupo comentario
 data TipoCodigoAg = TCACod String | TCAComIL String | TCAComML String deriving (Show)
 
 aC :: [TipoCodigo] -> [TipoCodigoAg]
@@ -182,11 +173,34 @@ aC2 (TCACod x:xs) = TCACod2 x Nothing : aC2 xs
 aC2 (_:xs)             = aC2 xs
 aC2 []                 = []
 
-
 maybeConcatenoComentario :: String -> Maybe String -> Maybe String
 maybeConcatenoComentario c' Nothing = Just c'
 maybeConcatenoComentario c' (Just c) = Just $ c ++ "\n" ++ c'
 
+-- Para probar esto -> agrupoComentario <$> dCom "string con cosas"
 
--- agrupoComentario <$> dCom "string con cosas"
+archivoPruebaModulo = Archivo (NombreM "TpHaskell2Index") [] [] [] [] []
+modulo :: Archivo -> Quizas NombreM -- Devuelve el módulo
+modulo (Archivo nm _ _ _ _ _) = OK nm
 
+importPruebaImports = Importacion (NombreM "Data.List (inits)") (Just "prueba") --"-- agrego lista"
+importPruebaImports2 = Importacion (NombreM "Data.List") Nothing
+archivoPruebaImports = Archivo (NombreM "") [importPruebaImports, importPruebaImports2] [] [] [] []
+imports :: Archivo -> [Importacion] -- Módulos que importa
+imports (Archivo _ im _ _ _ _) = im
+
+dataPruebaData = Data "Estoy" "= Normal | CML | CIL | Comillas"
+archivoPruebaDatas = Archivo (NombreM "") [] [dataPruebaData] [] [] []
+datas :: Archivo -> [Data] -- Tipos de dato que genera
+datas (Archivo _ _ d _ _ _) = d
+
+clasePruebaClases = Clase (Just "(Monad m, Monad (t m))") "Transform" "t m" Nothing
+archivoPruebaClases = Archivo (NombreM "") [] [] [clasePruebaClases] [] []
+clases :: Archivo -> [Clase] -- Clases que genera
+clases (Archivo _ _ _ c _ _) = c
+
+{-
+funciones :: Archivo -> [Funciones] -- Funciones definidas
+instancias :: NombreM -> Archivo -> Quizas [Instancias] -- Devuelve las instancias definidas de un tipo de dato
+nombres :: Archivo -> [Nombre] -- Lista de clases, datos, funciones, etc incluidas (solo de primer nivel).
+-}

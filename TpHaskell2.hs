@@ -98,6 +98,7 @@ defaultOpciones :: Opciones
 leoArchivo :: String -> Quizas Archivo -- Lectura de un archivo completo .hs
 showArchivo :: Opciones -> Archivo -> String -- Muestra el archivo con format
 ordenoArchivo :: Archivo -> Archivo -- Ordeno por nombre de función
+
 modulo :: Archivo -> Quizas NombreM -- Devuelve el módulo
 imports :: Archivo -> [NombreM] -- Módulos que importa
 datas :: Archivo -> [Data] -- Tipos de dato que genera
@@ -105,6 +106,7 @@ clases :: Archivo -> [Clase] -- Clases que genera
 funciones :: Archivo -> [Funciones] -- Funciones definidas
 instancias :: NombreM -> Archivo -> Quizas [Instancias] -- Devuelve las instancias definidas de un tipo de dato
 nombres :: Archivo -> [Nombre] -- Lista de clases, datos, funciones, etc incluidas (solo de primer nivel).
+
 agregoFuncion :: Funcion -> Archivo -> Quizas Archivo -- Agrega una función
 -- tiene un Quizas archivo porque si ya existe la funcion devuelvo un error
 sacoFuncion :: NombreF -> Archivo -> Archivo -- Devuelve el Archivo sacando una función
