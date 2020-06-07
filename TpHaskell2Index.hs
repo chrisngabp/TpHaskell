@@ -16,10 +16,12 @@ instance Monad Quizas where
     Error x >>= _ = Error x
     OK x >>= f    = f x
 
-data Archivo = Archivo NombreM [Importacion] [Data] [Clase] [Instancia] [Funcion]
+data Archivo = Archivo NombreM [Importacion] [Data] [Clase] [Instancia] [Funcion] deriving (Show)
 
+{-
 instance Show Archivo where
     show = undefined -- mostrarArchivo
+-}
 
 -- instance Eq Archivo where
 
@@ -34,7 +36,7 @@ data Clase = Clase (Maybe HerenciaClase) NombreClase Firma (Maybe Where) derivin
 type NombreClase = String
 type HerenciaClase = String 
 
-data Instancia = Instancia NombreClase NombreDeDato Where
+data Instancia = Instancia NombreClase NombreDeDato Where deriving (Show)
 type TipoInstancia = String
 
 -- INICIO Datas y types de Funcion
@@ -71,7 +73,7 @@ instance ConComentario Funcion where
 -}
 
 data NombreM = NombreM String deriving (Show) -- Nombre válido para módulos, datos, etc.
-data NombreF = NombreF String | OperadorF String deriving (Show) -- Nombre válido para funciones
+data NombreF = NombreF String | OperadorF String deriving (Show, Eq) -- Nombre válido para funciones
 data Nombre = NM NombreM | NF NombreF
 
 data Opciones = Opciones {largoLinea :: Int, anchoTab :: Int, comentarioInline :: Bool, compacto :: Bool, colores :: Bool} -- Pueden agregar otros parámetros.
@@ -182,25 +184,51 @@ maybeConcatenoComentario c' (Just c) = Just $ c ++ "\n" ++ c'
 archivoPruebaModulo = Archivo (NombreM "TpHaskell2Index") [] [] [] [] []
 modulo :: Archivo -> Quizas NombreM -- Devuelve el módulo
 modulo (Archivo nm _ _ _ _ _) = OK nm
+-- para probar en GHCI : modulo $ archivoPruebaModulo
 
 importPruebaImports = Importacion (NombreM "Data.List (inits)") (Just "prueba") --"-- agrego lista"
 importPruebaImports2 = Importacion (NombreM "Data.List") Nothing
 archivoPruebaImports = Archivo (NombreM "") [importPruebaImports, importPruebaImports2] [] [] [] []
 imports :: Archivo -> [Importacion] -- Módulos que importa
 imports (Archivo _ im _ _ _ _) = im
+-- para probar en GHCI : imports $ archivoPruebaImports
 
 dataPruebaData = Data "Estoy" "= Normal | CML | CIL | Comillas"
 archivoPruebaDatas = Archivo (NombreM "") [] [dataPruebaData] [] [] []
 datas :: Archivo -> [Data] -- Tipos de dato que genera
 datas (Archivo _ _ d _ _ _) = d
+-- para probar en GHCI : datas $ archivoPruebaDatas
 
 clasePruebaClases = Clase (Just "(Monad m, Monad (t m))") "Transform" "t m" Nothing
 archivoPruebaClases = Archivo (NombreM "") [] [] [clasePruebaClases] [] []
 clases :: Archivo -> [Clase] -- Clases que genera
 clases (Archivo _ _ _ c _ _) = c
+-- para probar en GHCI : clases $ archivoPruebaClases
 
+-- TODO: completar estas que quedaron
 {-
 funciones :: Archivo -> [Funciones] -- Funciones definidas
 instancias :: NombreM -> Archivo -> Quizas [Instancias] -- Devuelve las instancias definidas de un tipo de dato
 nombres :: Archivo -> [Nombre] -- Lista de clases, datos, funciones, etc incluidas (solo de primer nivel).
 -}
+
+bloqueFuncionPrueba1 = Expresion "a | a < 5 = a + 1"
+bloqueFuncionPrueba2 = Expresion "a = a"
+patronFuncionPrueba = Patron (Left bloqueFuncionPrueba1) Nothing Nothing
+patronFuncionPrueba2 = Patron (Left bloqueFuncionPrueba2 ) Nothing (Just "-- comento esto")
+funcionPruebaAgregoFuncion = Funcion (NombreF "miFuncion") (Just "a -> a") [patronFuncionPrueba, patronFuncionPrueba2] Nothing
+archivoConFuncionAgregada = fromQuizas $ agregoFuncion funcionPruebaAgregoFuncion archivoPruebaModulo
+
+agregoFuncion :: Funcion -> Archivo -> Quizas Archivo -- Agrega una función
+-- tiene un Quizas archivo porque si ya existe la funcion devuelvo un error
+agregoFuncion f (Archivo nm im d c ins fa) | yaExisteFuncion f fa = Error "La funcion ya existe"
+agregoFuncion f (Archivo nm im d c ins fa) = OK (Archivo nm im d c ins (f:fa))
+
+yaExisteFuncion :: Funcion -> [Funcion] -> Bool
+yaExisteFuncion f (fa:farest) = if funcionesIguales f fa then True else yaExisteFuncion f farest
+yaExisteFuncion _ _ = False
+
+funcionesIguales :: Funcion -> Funcion -> Bool
+funcionesIguales (Funcion nomf1 _ _ _) (Funcion nomf2 _ _ _) = (nomf1 == nomf2)
+
+--sacoFuncion :: NombreF -> Archivo -> Archivo -- Devuelve el Archivo sacando una función
