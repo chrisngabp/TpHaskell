@@ -65,9 +65,6 @@ miArchivo = return archivoVacio
 	>>= agregoComentario "miFuncion" "comentario"
 	>>= show
 
-
-
-
 data Comentario 
 -- Si la linea arranca como comentario, el comentario es de lo que sigue, y sino es inline, es de la linea
 
@@ -95,33 +92,50 @@ data Opciones = Opciones {largoLinea :: Int, anchoTab :: Int, comentarioInline :
 Funciones sugeridas:
 
 defaultOpciones :: Opciones
-leoArchivo :: String -> Quizas Archivo -- Lectura de un archivo completo .hs
+
+leoArchivo :: String -> Quizas Archivo -- ESTO LO HACE CHRIS PANETTA - Lectura de un archivo completo .hs
+
+-- Esto lo hace Nacho
 showArchivo :: Opciones -> Archivo -> String -- Muestra el archivo con format
 ordenoArchivo :: Archivo -> Archivo -- Ordeno por nombre de función
 
+-- Esto ya esta hecho
 modulo :: Archivo -> Quizas NombreM -- Devuelve el módulo
 imports :: Archivo -> [NombreM] -- Módulos que importa
 datas :: Archivo -> [Data] -- Tipos de dato que genera
 clases :: Archivo -> [Clase] -- Clases que genera
+
+-- Esto lo hace flor
 funciones :: Archivo -> [Funciones] -- Funciones definidas
+
+-- Estos los hace Chris G
 instancias :: NombreM -> Archivo -> Quizas [Instancias] -- Devuelve las instancias definidas de un tipo de dato
 nombres :: Archivo -> [Nombre] -- Lista de clases, datos, funciones, etc incluidas (solo de primer nivel).
 
+-- Esto ya esta
 agregoFuncion :: Funcion -> Archivo -> Quizas Archivo -- Agrega una función
 -- tiene un Quizas archivo porque si ya existe la funcion devuelvo un error
+
+-- Chris G
 sacoFuncion :: NombreF -> Archivo -> Archivo -- Devuelve el Archivo sacando una función
 reemplazoFuncion :: NombreF -> Funcion -> Archivo -> Quizas Archivo -- Reemplazo una función con una nueva
 buscoFuncion :: String -> Archivo -> [Funcion] -- Devuelve las funciones en donde se encuentra un texto
+
+-- Flor
 agregoDato :: Data -> Archivo -> Quizas Archivo -- Agrega un tipo de dato
 sacoDato :: NombreM -> Archivo -> Archivo -- Saca un tipo de dato
 agregoInstancia :: Instancia -> Archivo -> Quizas Archivo -- Agrega una instancia
 sacoInstancia :: NombreM -> NombreM -> Archivo -> Archivo -- Saca una instancia de un Dato y Clase
-agregoComentario -> Comentario -> Nombre -> Archivo -> Quizas Archivo -- Agrego un comentario a determinada Función, Data, etc. Si ya contiene uno, lo agrega al comentario anterior.
-sacoComentario -> Nombre -> Archivo -> Archivo -- Saco el comentario
+
+-- Chris G
+agregoComentario :: Comentario -> Nombre -> Archivo -> Quizas Archivo -- Agrego un comentario a determinada Función, Data, etc. Si ya contiene uno, lo agrega al comentario anterior.
+sacoComentario :: Nombre -> Archivo -> Archivo -- Saco el comentario
 getFuncion :: NombreF -> Archivo -> Quizas Funcion -- Busca una función
 archivoVacio :: Archivo -- Archivo Vacío
 sustituir :: String -> String -> Archivo -> Quizas Archivo -- Reemplaza y verifica que no se dupliquen nombres de funciones, datos (y parámetros ?)
 nombre :: ConNombre a => a -> Nombre -- Devuelve el nombre de un tipo de dato (ej. el nombre de una función o un tipo de dato)
+
+-- Flor
 toNombreF :: String -> NombreF -- nombre de la funcion
 toNombreM :: String -> NombreM
 toNombre :: EsNombre a => a -> Nombre
