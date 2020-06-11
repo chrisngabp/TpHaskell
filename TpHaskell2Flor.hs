@@ -1,5 +1,7 @@
 module TpHaskell2Index where
 
+import LoadFile
+
 data Quizas a = Error String | OK a deriving (Show)
 
 instance Functor Quizas where
@@ -16,7 +18,7 @@ instance Monad Quizas where
     Error x >>= _ = Error x
     OK x >>= f    = f x
 
-data Archivo = Archivo NombreM [Importacion] [Data] [Clase] [Instancia] [Funcion] deriving (Show)
+data Archivo = Archivo {nombreArc :: NombreM, importsArc :: [Importacion], datasArc :: [Data], clasesArc :: [Clase], instancesArc :: [Instancia], funcionesArc :: [Funcion]} deriving (Show)
 
 {-
 instance Show Archivo where
@@ -25,27 +27,27 @@ instance Show Archivo where
 
 -- instance Eq Archivo where
 
-data Importacion = Importacion NombreM Comentario deriving (Show) -- "Data.List" "import Data.List (inits)"
+data Importacion = Importacion {nombreImp :: NombreM, comentarioImp :: Comentario} deriving (Show) -- "Data.List" "import Data.List (inits)"
 
 data Codigo = CD Data | CC Clase | CI Instancia | CF Funcion
 
-data Data = Data NombreDeDato String deriving (Show)
+data Data = Data {nombreDat :: NombreDeDato, definicionDat :: String} deriving (Show)
 type NombreDeDato = String
 
-data Clase = Clase (Maybe HerenciaClase) NombreClase Firma (Maybe Where) deriving (Show)
+data Clase = Clase {herenciaCla :: Maybe HerenciaClase, nombreCla :: NombreClase, firmaCla :: Firma, whereCla :: Maybe Where} deriving (Show)
 type NombreClase = String
 type HerenciaClase = String 
 
-data Instancia = Instancia NombreClase NombreDeDato Where deriving (Show)
+data Instancia = Instancia {nombreIns :: NombreClase, nombreDatoIns :: NombreDeDato, whereIns :: Where} deriving (Show)
 type TipoInstancia = String
 
 -- INICIO Datas y types de Funcion
 
-data Funcion = Funcion NombreF (Maybe Firma) [Patron] Comentario deriving (Show)
+data Funcion = Funcion {nombreFun :: NombreF, firmaFun :: Maybe Firma, patronesFun :: [Patron], comentarioFun :: Comentario} deriving (Show)
 type Firma = String -- Sinonimos (type)
 
 -- Falta agregarle los argumentos a Patron Argumentos
-data Patron = Patron (Either Bloque [Pipe]) (Maybe Where) Comentario deriving (Show)
+data Patron = Patron { blopipePat :: Either Bloque [Pipe], wherePat :: Maybe Where, comentarioPat :: Comentario} deriving (Show)
 type Argumentos = String
 type Where = [Funcion]
 data Bloque =   Expresion Resultado | 
@@ -132,7 +134,15 @@ stringAComentario :: String -> Comentario
 stringAComentario [] = Nothing
 stringAComentario x = Just x
 
--- detecto comentario
+
+{-
+    FUNCIONES PARA LECTURA DEL ARCHIVO
+-}
+
+{-
+    Lectura de comentario
+-}
+
 dCom :: String -> Quizas [TipoCodigo]
 dCom xs                 = dCom' Normal xs --
 
@@ -186,7 +196,11 @@ maybeConcatenoComentario :: String -> Maybe String -> Maybe String
 maybeConcatenoComentario c' Nothing = Just c'
 maybeConcatenoComentario c' (Just c) = Just $ c ++ "\n" ++ c'
 
--- Para probar esto -> agrupoComentario <$> dCom "string con cosas"
+-- Para probar esto -> aC <$> dCom "string con cosas"
+
+archivoCargado = loadFile $ "/Users/cpanetta/Desktop/Fracciones.hs"
+
+-- Esto lo uso para probar
 
 archivoPruebaModulo = Archivo (NombreM "TpHaskell2Index") [] [] [] [] []
 modulo :: Archivo -> Quizas NombreM -- Devuelve el módulo
