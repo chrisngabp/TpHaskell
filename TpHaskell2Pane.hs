@@ -203,9 +203,91 @@ archivoCargado = loadFile $ "/Users/cpanetta/Desktop/Fracciones.hs"
 -- Esto lo uso para probar
 
 {-
-    Lectura de comentario
+    Lectura de Codigos
 -}
 
+esPrefijoDe :: Eq a => [a] -> [a] -> Bool
+esPrefijoDe [] _ = True
+esPrefijoDe _ [] = False
+esPrefijoDe (x:xs) (y:ys) = x == y && esPrefijoDe xs ys
+
+buscar :: Eq a => [a] -> [a] -> Maybe ([a], [a])
+buscar xs ys   | esPrefijoDe xs ys = Just ([],ys)
+buscar _ []                        = Nothing
+buscar xs (y:ys)                   = agrego <$> buscar xs ys
+    where agrego (as,bs) = (y:as,bs)
+          g = 10
+
+cantEspacios :: String -> Int
+cantEspacios (' ':xs) = succ $ cantEspacios xs
+cantEspacios _        = 0
+
+data Infinito a = Infinito [(a,Infinito a)] deriving (Show)
+
+agrupoLinea :: [String] -> Infinito String
+agrupoLinea []      = Infinito []
+agrupoLinea (x:xs)  = Infinito ((x,agrupoLinea ini) : fin')
+    where n = cantEspacios x
+          (ini,fin) = break ((<=n) . cantEspacios) xs
+          Infinito fin' = agrupoLinea fin
+
+quitarQuizas :: Quizas a -> a
+quitarQuizas (OK a) = a
+
+tipoCodigoAgAStr :: TipoCodigoAg -> String
+tipoCodigoAgAStr (TCACod x) = x
+tipoCodigoAgAStr (TCAComIL x) = x
+tipoCodigoAgAStr (TCAComML x) = x
+
+tipoPartCodigoAgAStr :: TipoPartCodigo -> String
+tipoPartCodigoAgAStr (TPCNomMod x) = x
+tipoPartCodigoAgAStr (TPCImport x) = x
+tipoPartCodigoAgAStr (TPCData x) = x
+tipoPartCodigoAgAStr (TPCInsta x) = x
+tipoPartCodigoAgAStr (TPCFuncion x) = x
+tipoPartCodigoAgAStr (TPCCIL x) = x
+tipoPartCodigoAgAStr (TPCCML x) = x
+
+data TipoPartCodigo = TPCNomMod String | TPCImport String | TPCData String | TPCClase String | TPCInsta String | TPCFuncion String | TPCCIL String | TPCCML String deriving (Show)
+data EstoyPartCod = CNormal | CNMod | CImport | CData | CClase | CInsta | CFuncion
+
+-- Detecto Tipo de Codigo
+-- dCod :: [TipoCodigoAg] -> Quizas [TipoPartCodigo]
+-- dCod a = dCod' CNormal a
+
+-- dCod' :: [TipoCodigoAg] -> Quizas [TipoPartCodigo]
+-- dCod' _ []                                                      = OK []
+-- dCod' estoy ((TCAComIL x):xs)                                   = (TPCCIL x : dCod' estoy xs)
+-- dCod' estoy ((TCAComML x):xs)                                   = (TPCCML x : dCod' estoy xs)
+-- dCod' _ ((TCACod x):xs) | esNombreModulo $ tipoCodigoAgAStr $ x = (TPCNomMod x : dCod' CNormal xs)
+-- dCod' _ ((TCACod x):xs) | esImport $ tipoCodigoAgAStr $ x       = (TCPImport x : dCod' CNormal xs)
+-- dCod' _ ((TCACod x):xs) | esFuncion $ tipoCodigoAgAStr $ x      = (TPCFuncion x : dCod' CFuncion xs)
+-- dCod' _ ((TCACod x):xs) | esData $ tipoCodigoAgAStr $ x         = (TPCData x : dCod' CData xs)
+-- dCod' _ ((TCACod x):xs) | esClase $ tipoCodigoAgAStr $ x        = (TPCClase x : dCod' CClase xs)
+-- dCod' _ ((TCACod x):xs) | esInstancia $ tipoCodigoAgAStr $ x    = (TPCInsta x : dCod' CInsta xs)
+-- dCod' CFuncion ((TCACod x):xs)                                  = (TPCFuncion x : dCod' CFuncion xs)
+-- dCod' CData ((TCACod x):xs)                                     = (TPCData x : dCod' CData xs)
+-- dCod' CClase ((TCACod x):xs)                                    = (TPCClase x : dCod' CClase xs)
+-- dCod' CInsta ((TCACod x):xs)                                    = (TPCInsta x : dCod' CInsta xs)
+
+esNombreModulo :: String -> Bool
+esNombreModulo a = tieneModule && tieneWhere
+    where tieneModule = esPrefijoDe "module " a
+          tieneWhere  = case buscar " where" a of
+                          Just (ini,fin) -> fin == " where"
+                          Nothing        -> False
+
+esImport :: String -> Bool
+esImport a = tieneImport
+   where tieneImport = esPrefijoDe "import " a
+
+
+
+-- hacer que el argumento de entrada sea una lista y usar xs y xss
+-- usar funcion de busqueda entre medio
+-- separar esto en subfunciones
+
+pruebaArchivoALista = quitarQuizas $ (aC <$> dCom archivoCargado)
 
 
 
