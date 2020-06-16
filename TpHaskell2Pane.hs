@@ -252,23 +252,23 @@ data TipoPartCodigo = TPCNomMod String | TPCImport String | TPCData String | TPC
 data EstoyPartCod = CNormal | CNMod | CImport | CData | CClase | CInsta | CFuncion
 
 -- Detecto Tipo de Codigo
--- dCod :: [TipoCodigoAg] -> Quizas [TipoPartCodigo]
--- dCod a = dCod' CNormal a
+dCod :: [TipoCodigoAg] -> [TipoPartCodigo]
+dCod a = dCod' CNormal a
 
--- dCod' :: [TipoCodigoAg] -> Quizas [TipoPartCodigo]
--- dCod' _ []                                                      = OK []
--- dCod' estoy ((TCAComIL x):xs)                                   = (TPCCIL x : dCod' estoy xs)
--- dCod' estoy ((TCAComML x):xs)                                   = (TPCCML x : dCod' estoy xs)
--- dCod' _ ((TCACod x):xs) | esNombreModulo $ tipoCodigoAgAStr $ x = (TPCNomMod x : dCod' CNormal xs)
--- dCod' _ ((TCACod x):xs) | esImport $ tipoCodigoAgAStr $ x       = (TCPImport x : dCod' CNormal xs)
--- dCod' _ ((TCACod x):xs) | esFuncion $ tipoCodigoAgAStr $ x      = (TPCFuncion x : dCod' CFuncion xs)
--- dCod' _ ((TCACod x):xs) | esData $ tipoCodigoAgAStr $ x         = (TPCData x : dCod' CData xs)
--- dCod' _ ((TCACod x):xs) | esClase $ tipoCodigoAgAStr $ x        = (TPCClase x : dCod' CClase xs)
--- dCod' _ ((TCACod x):xs) | esInstancia $ tipoCodigoAgAStr $ x    = (TPCInsta x : dCod' CInsta xs)
--- dCod' CFuncion ((TCACod x):xs)                                  = (TPCFuncion x : dCod' CFuncion xs)
--- dCod' CData ((TCACod x):xs)                                     = (TPCData x : dCod' CData xs)
--- dCod' CClase ((TCACod x):xs)                                    = (TPCClase x : dCod' CClase xs)
--- dCod' CInsta ((TCACod x):xs)                                    = (TPCInsta x : dCod' CInsta xs)
+dCod' :: EstoyPartCod -> [TipoCodigoAg] -> [TipoPartCodigo]
+dCod' _ []                                                      = []
+dCod' estoy ((TCAComIL x):xs)                                   = (TPCCIL x : dCod' estoy xs)
+dCod' estoy ((TCAComML x):xs)                                   = (TPCCML x : dCod' estoy xs)
+dCod' _ ((TCACod x):xs) | esNombreModulo x = (TPCNomMod x : dCod' CNormal xs)
+dCod' _ ((TCACod x):xs) | esImport x       = (TPCImport x : dCod' CNormal xs)
+dCod' _ ((TCACod x):xs) | esFuncion x      = (TPCFuncion x : dCod' CFuncion xs)
+dCod' _ ((TCACod x):xs) | esData x         = (TPCData x : dCod' CData xs)
+dCod' _ ((TCACod x):xs) | esClase x        = (TPCClase x : dCod' CClase xs)
+dCod' _ ((TCACod x):xs) | esInstancia x    = (TPCInsta x : dCod' CInsta xs)
+dCod' CFuncion ((TCACod x):xs)                                  = (TPCFuncion x : dCod' CFuncion xs)
+dCod' CData ((TCACod x):xs)                                     = (TPCData x : dCod' CData xs)
+dCod' CClase ((TCACod x):xs)                                    = (TPCClase x : dCod' CClase xs)
+dCod' CInsta ((TCACod x):xs)                                    = (TPCInsta x : dCod' CInsta xs)
 
 esNombreModulo :: String -> Bool
 esNombreModulo a = tieneModule && tieneWhere
@@ -281,6 +281,36 @@ esImport :: String -> Bool
 esImport a = tieneImport
    where tieneImport = esPrefijoDe "import " a
 
+esFuncion :: String -> Bool
+esFuncion a = not tieneIndentado && (tieneDosPuntos || tieneIgual)
+   where tieneDosPuntos = case buscar " :: " a of
+                            Just (_) -> True
+                            Nothing  -> False
+         tieneIgual     = case buscar " = " a of
+                            Just (_) -> True
+                            Nothing  -> False
+         tieneIndentado = esPrefijoDe " " a
+
+esData :: String -> Bool
+esData a = tieneData && tieneIgual
+   where tieneData      = esPrefijoDe "data " a
+         tieneIgual     = case buscar " = " a of
+                            Just (ini, fin) -> True
+                            Nothing         -> False
+
+esClase :: String -> Bool
+esClase a = tieneClase && tieneWhere
+   where tieneClase     = esPrefijoDe "class " a
+         tieneWhere  = case buscar " where" a of
+                            Just (ini,fin) -> fin == " where"
+                            Nothing        -> False
+
+esInstancia :: String -> Bool
+esInstancia a = tieneInstancia && tieneWhere
+   where tieneInstancia = esPrefijoDe "instance " a
+         tieneWhere  = case buscar " where" a of
+                            Just (ini,fin) -> fin == " where"
+                            Nothing        -> False
 
 
 -- hacer que el argumento de entrada sea una lista y usar xs y xss
