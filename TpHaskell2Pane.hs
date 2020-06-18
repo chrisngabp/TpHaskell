@@ -256,19 +256,19 @@ dCod :: [TipoCodigoAg] -> [TipoPartCodigo]
 dCod a = dCod' CNormal a
 
 dCod' :: EstoyPartCod -> [TipoCodigoAg] -> [TipoPartCodigo]
-dCod' _ []                                                      = []
-dCod' estoy ((TCAComIL x):xs)                                   = (TPCCIL x : dCod' estoy xs)
-dCod' estoy ((TCAComML x):xs)                                   = (TPCCML x : dCod' estoy xs)
+dCod' _ []                                 = []
+dCod' estoy ((TCAComIL x):xs)              = (TPCCIL x : dCod' estoy xs)
+dCod' estoy ((TCAComML x):xs)              = (TPCCML x : dCod' estoy xs)
 dCod' _ ((TCACod x):xs) | esNombreModulo x = (TPCNomMod x : dCod' CNormal xs)
 dCod' _ ((TCACod x):xs) | esImport x       = (TPCImport x : dCod' CNormal xs)
 dCod' _ ((TCACod x):xs) | esFuncion x      = (TPCFuncion x : dCod' CFuncion xs)
 dCod' _ ((TCACod x):xs) | esData x         = (TPCData x : dCod' CData xs)
 dCod' _ ((TCACod x):xs) | esClase x        = (TPCClase x : dCod' CClase xs)
 dCod' _ ((TCACod x):xs) | esInstancia x    = (TPCInsta x : dCod' CInsta xs)
-dCod' CFuncion ((TCACod x):xs)                                  = (TPCFuncion x : dCod' CFuncion xs)
-dCod' CData ((TCACod x):xs)                                     = (TPCData x : dCod' CData xs)
-dCod' CClase ((TCACod x):xs)                                    = (TPCClase x : dCod' CClase xs)
-dCod' CInsta ((TCACod x):xs)                                    = (TPCInsta x : dCod' CInsta xs)
+dCod' CFuncion ((TCACod x):xs)             = (TPCFuncion x : dCod' CFuncion xs)
+dCod' CData ((TCACod x):xs)                = (TPCData x : dCod' CData xs)
+dCod' CClase ((TCACod x):xs)               = (TPCClase x : dCod' CClase xs)
+dCod' CInsta ((TCACod x):xs)               = (TPCInsta x : dCod' CInsta xs)
 
 esNombreModulo :: String -> Bool
 esNombreModulo a = tieneModule && tieneWhere
