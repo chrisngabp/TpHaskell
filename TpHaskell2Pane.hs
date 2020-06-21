@@ -1,93 +1,7 @@
 module TpHaskell2Index where
 
 import LoadFile
-
-data Quizas a = Error String | OK a deriving (Show)
-
-instance Functor Quizas where
-    fmap _ (Error x) = Error x
-    fmap f (OK x) = OK $ f x
-
-instance Applicative Quizas where
-    pure x          = OK x
-    _ <*> Error x   = Error x
-    Error x <*> _   = Error x
-    OK f <*> OK x   = OK $ f x
-
-instance Monad Quizas where
-    Error x >>= _ = Error x
-    OK x >>= f    = f x
-
-data Archivo = Archivo {nombreArc :: NombreM, importsArc :: [Importacion], datasArc :: [Data], clasesArc :: [Clase], instancesArc :: [Instancia], funcionesArc :: [Funcion]} deriving (Show)
-
-{-
-instance Show Archivo where
-    show = undefined -- mostrarArchivo
--}
-
--- instance Eq Archivo where
-
-data Importacion = Importacion {nombreImp :: NombreM, comentarioImp :: Comentario} deriving (Show) -- "Data.List" "import Data.List (inits)"
-
-data Codigo = CD Data | CC Clase | CI Instancia | CF Funcion
-
-data Data = Data {nombreDat :: NombreDeDato, definicionDat :: String} deriving (Show)
-type NombreDeDato = String
-
-data Clase = Clase {herenciaCla :: Maybe HerenciaClase, nombreCla :: NombreClase, firmaCla :: Firma, whereCla :: Maybe Where} deriving (Show)
-type NombreClase = String
-type HerenciaClase = String 
-
-data Instancia = Instancia {nombreIns :: NombreClase, nombreDatoIns :: NombreDeDato, whereIns :: Where} deriving (Show)
-type TipoInstancia = String
-
--- INICIO Datas y types de Funcion
-
-data Funcion = Funcion {nombreFun :: NombreF, firmaFun :: Maybe Firma, patronesFun :: [Patron], comentarioFun :: Comentario} deriving (Show)
-type Firma = String -- Sinonimos (type)
-
--- Falta agregarle los argumentos a Patron Argumentos
-data Patron = Patron { blopipePat :: Either Bloque [Pipe], wherePat :: Maybe Where, comentarioPat :: Comentario} deriving (Show)
-type Argumentos = String
-type Where = [Funcion]
-data Bloque =   Expresion Resultado | 
-                LetIn [Funcion] Bloque | 
-                IfThenElse Bloque Bloque Bloque | 
-                Case [Bloque] deriving (Show)
-
-type Resultado = String
-type ResultadoBool = String
-data Pipe = Pipe ResultadoBool Bloque deriving (Show)
-
--- FIN Datas y types de Funcion
-
-type Comentario = Maybe String
-class ConComentario a where
-    comentario :: a -> Maybe Comentario
-
-{-
-class ConComentario a where
-    comentario :: a -> Maybe Comentario
-    agregoComentario :: Comentario -> a -> a
--}
-
-{-
-instance ConComentario Funcion where
-    agregoComentario c' (Funcion f x w mc) = Funcion f x w (maybeConcateno c' mc)
--}
-
-data NombreM = NombreM String deriving (Show) -- Nombre válido para módulos, datos, etc.
-data NombreF = NombreF String | OperadorF String deriving (Show, Eq) -- Nombre válido para funciones
-data Nombre = NM NombreM | NF NombreF
-
-data Opciones = Opciones {largoLinea :: Int, anchoTab :: Int, comentarioInline :: Bool, compacto :: Bool, colores :: Bool} -- Pueden agregar otros parámetros.
-
-{-
-EsNombre: Contiene a NombreM y NombreF
-ConNombre: Clase con los datos que tienen nombre.
-ConComentario: Clase con los datos que pueden contener comentario.
--}
-
+import TpHaskell2Estructuras
 
 {-
 -
@@ -203,11 +117,202 @@ archivoCargado = loadFile $ "/Users/cpanetta/Desktop/Fracciones.hs"
 -- Esto lo uso para probar
 
 {-
-    Lectura de comentario
+    Lectura de Codigos
 -}
 
+esPrefijoDe :: Eq a => [a] -> [a] -> Bool
+esPrefijoDe [] _ = True
+esPrefijoDe _ [] = False
+esPrefijoDe (x:xs) (y:ys) = x == y && esPrefijoDe xs ys
+
+buscar :: Eq a => [a] -> [a] -> Maybe ([a], [a])
+buscar xs ys   | esPrefijoDe xs ys = Just ([],ys)
+buscar _ []                        = Nothing
+buscar xs (y:ys)                   = agrego <$> buscar xs ys
+    where agrego (as,bs) = (y:as,bs)
+          g = 10
+
+separo :: String -> [String]
+separo str = case dropWhile esEspacio str of
+                "" -> []
+                str' -> w : separo str''
+                        where (w, str'') =
+                                break esEspacio str'
+
+esEspacio :: Char -> Bool
+esEspacio ' ' = True
+esEspacio _ = False
+
+cantEspacios :: String -> Int
+cantEspacios (' ':xs) = succ $ cantEspacios xs
+cantEspacios _        = 0
+
+data Infinito a = Infinito [(a,Infinito a)] deriving (Show)
+
+agrupoLinea :: [String] -> Infinito String
+agrupoLinea []      = Infinito []
+agrupoLinea (x:xs)  = Infinito ((x,agrupoLinea ini) : fin')
+    where n = cantEspacios x
+          (ini,fin) = break ((<=n) . cantEspacios) xs
+          Infinito fin' = agrupoLinea fin
+
+quitarQuizas :: Quizas a -> a
+quitarQuizas (OK a) = a
+
+tipoCodigoAgAStr :: TipoCodigoAg -> String
+tipoCodigoAgAStr (TCACod x) = x
+tipoCodigoAgAStr (TCAComIL x) = x
+tipoCodigoAgAStr (TCAComML x) = x
+
+tipoPartCodigoAgAStr :: TipoPartCodigo -> String
+tipoPartCodigoAgAStr (TPCNomMod x) = x
+tipoPartCodigoAgAStr (TPCImport x) = x
+tipoPartCodigoAgAStr (TPCData x) = x
+tipoPartCodigoAgAStr (TPCInsta x) = x
+tipoPartCodigoAgAStr (TPCFuncion x) = x
+tipoPartCodigoAgAStr (TPCImportCIL x) = x
+tipoPartCodigoAgAStr (TPCImportCML x) = x
+tipoPartCodigoAgAStr (TPCDataCIL x) = x
+tipoPartCodigoAgAStr (TPCDataCML x) = x
+tipoPartCodigoAgAStr (TPCClaseCIL x) = x
+tipoPartCodigoAgAStr (TPCClaseCML x) = x
+tipoPartCodigoAgAStr (TPCInstaCIL x) = x
+tipoPartCodigoAgAStr (TPCInstaCML x) = x
+tipoPartCodigoAgAStr (TPCFuncionCIL x) = x
+tipoPartCodigoAgAStr (TPCFuncionCML x) = x
+
+data TipoPartCodigo = 
+    TPCNomMod String | TPCImport String | 
+    TPCData String | TPCClase String | 
+    TPCInsta String | TPCFuncion String | 
+    TPCCIL String | TPCCML String | 
+    TPCImportCIL String | TPCImportCML String |
+    TPCDataCIL String | TPCDataCML String |
+    TPCClaseCIL String | TPCClaseCML String |
+    TPCInstaCIL String | TPCInstaCML String |
+    TPCFuncionCIL String | TPCFuncionCML String deriving (Show)
+data EstoyPartCod = CNormal | CNMod | CImport | CData | CClase | CInsta | CFuncion
+
+-- Detecto Tipo de Codigo
+dCod :: [TipoCodigoAg] -> [TipoPartCodigo]
+dCod a = dCod' CNormal a
+
+dCod' :: EstoyPartCod -> [TipoCodigoAg] -> [TipoPartCodigo]
+dCod' _ []                                 = []
+dCod' CNormal ((TCAComIL x):xs)            = (TPCCIL x : dCod' CNormal xs)
+dCod' CNormal ((TCAComML x):xs)            = (TPCCML x : dCod' CNormal xs)
+dCod' CImport ((TCAComIL x):xs)            = (TPCImportCIL x : dCod' CImport xs)
+dCod' CImport ((TCAComML x):xs)            = (TPCImportCML x : dCod' CImport xs)
+dCod' CData ((TCAComIL x):xs)              = (TPCDataCIL x : dCod' CData xs)
+dCod' CData ((TCAComML x):xs)              = (TPCDataCML x : dCod' CData xs)
+dCod' CClase ((TCAComIL x):xs)             = (TPCClaseCIL x : dCod' CClase xs)
+dCod' CClase ((TCAComML x):xs)             = (TPCClaseCML x : dCod' CClase xs)
+dCod' CInsta ((TCAComIL x):xs)             = (TPCInstaCIL x : dCod' CInsta xs)
+dCod' CInsta ((TCAComML x):xs)             = (TPCInstaCML x : dCod' CInsta xs)
+dCod' CFuncion ((TCAComIL x):xs)           = (TPCFuncionCIL x : dCod' CFuncion xs)
+dCod' CFuncion ((TCAComML x):xs)           = (TPCFuncionCML x : dCod' CFuncion xs)
+dCod' _ ((TCACod x):xs) | esNombreModulo x = (TPCNomMod x : dCod' CNormal xs)
+dCod' _ ((TCACod x):xs) | esImport x       = (TPCImport x : dCod' CImport xs)
+dCod' _ ((TCACod x):xs) | esData x         = (TPCData x : dCod' CData xs)
+dCod' _ ((TCACod x):xs) | esClase x        = (TPCClase x : dCod' CClase xs)
+dCod' _ ((TCACod x):xs) | esInstancia x    = (TPCInsta x : dCod' CInsta xs)
+dCod' _ ((TCACod x):xs) | esFuncion x      = (TPCFuncion x : dCod' CFuncion xs)
+dCod' CData ((TCACod x):xs)                = (TPCData x : dCod' CData xs)
+dCod' CClase ((TCACod x):xs)               = (TPCClase x : dCod' CClase xs)
+dCod' CInsta ((TCACod x):xs)               = (TPCInsta x : dCod' CInsta xs)
+dCod' CFuncion ((TCACod x):xs)             = (TPCFuncion x : dCod' CFuncion xs)
+
+esNombreModulo :: String -> Bool
+esNombreModulo a = tieneModule && tieneWhere
+    where tieneModule = esPrefijoDe "module " a
+          tieneWhere  = case buscar " where" a of
+                          Just (ini,fin) -> fin == " where"
+                          Nothing        -> False
+
+esImport :: String -> Bool
+esImport a = tieneImport
+   where tieneImport = esPrefijoDe "import " a
+
+esFuncion :: String -> Bool
+esFuncion a = not tieneIndentado && (tieneDosPuntos || tieneIgual)
+   where tieneDosPuntos = case buscar " :: " a of
+                            Just (_) -> True
+                            Nothing  -> False
+         tieneIgual     = case buscar " = " a of
+                            Just (_) -> True
+                            Nothing  -> False
+         tieneIndentado = esPrefijoDe " " a
+
+esData :: String -> Bool
+esData a = tieneData && tieneIgual
+   where tieneData      = esPrefijoDe "data " a
+         tieneIgual     = case buscar " = " a of
+                            Just (ini, fin) -> True
+                            Nothing         -> False
+
+esClase :: String -> Bool
+esClase a = tieneClase && tieneWhere
+   where tieneClase     = esPrefijoDe "class " a
+         tieneWhere  = case buscar " where" a of
+                            Just (ini,fin) -> fin == " where"
+                            Nothing        -> False
+
+esInstancia :: String -> Bool
+esInstancia a = tieneInstancia && tieneWhere
+   where tieneInstancia = esPrefijoDe "instance " a
+         tieneWhere  = case buscar " where" a of
+                            Just (ini,fin) -> fin == " where"
+                            Nothing        -> False
+
+pruebaArchivoALista = quitarQuizas $ (aC <$> dCom archivoCargado)
+
+----
+
+armarArchivo :: [TipoPartCodigo] -> Archivo -> Archivo
+--armarArchivo (_:[]) ar                = ar 
+armarArchivo ((TPCNomMod nmod):[]) ar = ar {nombreArc = (strToNomM nmod)}
+armarArchivo ((TPCNomMod nmod):xs) ar = armarArchivo xs (ar {nombreArc = (strToNomM nmod)})
+armarArchivo ((TPCImport imp):[]) ar  = ar {importsArc = ((imports ar) ++ [(armarImport imp [])])}
+armarArchivo ((TPCImport imp):xs) ar  = armarArchivo xs (ar {importsArc = ((imports ar) ++ [(armarImport imp xs)])})
+armarArchivo ((TPCData dat):[]) ar    = ar {datasArc = ((datas ar) ++ [(armarData dat [])])}
+armarArchivo ((TPCData dat):xs) ar    = armarArchivo xs (ar {datasArc = ((datas ar) ++ [(armarData dat xs)])})
+armarArchivo (_:[]) ar                = ar 
+armarArchivo (_:xs) ar                = armarArchivo xs ar
 
 
+--
+strToNomM :: String -> NombreM
+strToNomM str = NombreM (getIndexFromList (separo str) 1)
+--
+
+getIndexFromList :: [a] -> Int -> a
+getIndexFromList (x:xs) 0 = x
+getIndexFromList (x:xs) i = getIndexFromList xs (i - 1)
+
+--
+armarImport :: String -> [TipoPartCodigo] -> Importacion
+armarImport nom ((TPCImportCIL x):_) = Importacion (strToNomM nom) (Just x)
+armarImport nom ((TPCImportCML x):_) = Importacion (strToNomM nom) (Just x)
+armarImport nom (_) = Importacion (strToNomM nom) Nothing
+--
+armarData :: String -> [TipoPartCodigo] -> Data
+armarData dat ((TPCDataCIL com):_) = Data (dataNombre dat) (dataDefinicion dat) (Just com)
+armarData dat ((TPCDataCML com):_) = Data (dataNombre dat) (dataDefinicion dat) (Just com)
+armarData dat (_) = Data (dataNombre dat) (dataDefinicion dat) Nothing
+
+dataNombre :: String -> String 
+dataNombre str = getIndexFromList (separo str) 1
+
+dataDefinicion :: String -> String
+dataDefinicion str = case buscar " = " str of
+                            Just (ini,(' ':'=':' ':fin)) -> fin
+                            Nothing        -> ""
+
+----
+archivoVacio :: Archivo
+archivoVacio = Archivo (NombreM "") [] [] [] [] []
+
+archivoArmado = armarArchivo (dCod $ pruebaArchivoALista) archivoVacio
 
 
 
@@ -239,13 +344,13 @@ imports :: Archivo -> [Importacion] -- Módulos que importa
 imports (Archivo _ im _ _ _ _) = im
 -- para probar en GHCI : imports $ archivoPruebaImports
 
-dataPruebaData = Data "Estoy" "= Normal | CML | CIL | Comillas"
+dataPruebaData = Data "Estoy" "= Normal | CML | CIL | Comillas" Nothing
 archivoPruebaDatas = Archivo (NombreM "") [] [dataPruebaData] [] [] []
 datas :: Archivo -> [Data] -- Tipos de dato que genera
 datas (Archivo _ _ d _ _ _) = d
 -- para probar en GHCI : datas $ archivoPruebaDatas
 
-clasePruebaClases = Clase (Just "(Monad m, Monad (t m))") "Transform" "t m" Nothing
+clasePruebaClases = Clase (Just "(Monad m, Monad (t m))") "Transform" "t m" Nothing Nothing
 archivoPruebaClases = Archivo (NombreM "") [] [] [clasePruebaClases] [] []
 clases :: Archivo -> [Clase] -- Clases que genera
 clases (Archivo _ _ _ c _ _) = c
