@@ -32,7 +32,7 @@ data Codigo = CD Data | CC Clase | CI Instancia | CF Funcion
 data Data = Data {nombreDat :: NombreDeDato, definicionDat :: String, comentarioDat :: Comentario} deriving (Show)
 type NombreDeDato = String
 
-data Clase = Clase {herenciaCla :: Maybe HerenciaClase, nombreCla :: NombreClase, firmaCla :: Firma, whereCla :: Maybe Where, comentarioCla :: Comentario} deriving (Show)
+data Clase = Clase {herenciaCla :: Maybe HerenciaClase, nombreCla :: NombreClase, firmaCla :: Firma, whereCla :: Where, comentarioCla :: Comentario} deriving (Show)
 type NombreClase = String
 type HerenciaClase = String 
 
