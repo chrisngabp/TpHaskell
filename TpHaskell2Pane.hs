@@ -139,6 +139,10 @@ separo str = case dropWhile esEspacio str of
                         where (w, str'') =
                                 break esEspacio str'
 
+tails                   :: [a] -> [[a]]
+tails []                =  [[]]
+tails xxs@(_:xs)        =  xxs : tails xs
+
 esEspacio :: Char -> Bool
 esEspacio ' ' = True
 esEspacio _ = False
@@ -191,7 +195,7 @@ data TipoPartCodigo =
     TPCClaseCIL String | TPCClaseCML String |
     TPCInstaCIL String | TPCInstaCML String |
     TPCFuncionCIL String | TPCFuncionCML String |
-    TPCFuncionInsta String deriving (Show)
+    TPCFuncionInsta String | TPCFuncionClase String deriving (Show)
 data EstoyPartCod = CNormal | CNMod | CImport | CData | CClase | CInsta | CFuncion
 
 -- Detecto Tipo de Codigo
@@ -219,7 +223,7 @@ dCod' _ ((TCACod x):xs) | esClase x        = (TPCClase x : dCod' CClase xs)
 dCod' _ ((TCACod x):xs) | esInstancia x    = (TPCInsta x : dCod' CInsta xs)
 dCod' _ ((TCACod x):xs) | esFuncion x      = (TPCFuncion x : dCod' CFuncion xs)
 dCod' CData ((TCACod x):xs)                = (TPCData x : dCod' CData xs)
-dCod' CClase ((TCACod x):xs)               = (TPCClase x : dCod' CClase xs) -- funcion clase?
+dCod' CClase ((TCACod x):xs)               = (TPCFuncionClase x : dCod' CClase xs)
 dCod' CInsta ((TCACod x):xs)               = (TPCFuncionInsta x : dCod' CInsta xs)
 dCod' CFuncion ((TCACod x):xs)             = (TPCFuncion x : dCod' CFuncion xs)
 
@@ -279,6 +283,8 @@ armarArchivo ((TPCData dat):[]) ar    = ar {datasArc = ((datasArc ar) ++ [(armar
 armarArchivo ((TPCData dat):xs) ar    = armarArchivo xs (ar {datasArc = ((datasArc $ ar) ++ [(armarData dat xs)])})
 armarArchivo ((TPCInsta ins):[]) ar   = ar {instancesArc = ((instancesArc ar) ++ [(armarInstance ins [])])}
 armarArchivo ((TPCInsta ins):xs) ar   = armarArchivo xs (ar {instancesArc = ((instancesArc ar) ++ [(armarInstance ins xs)])})
+armarArchivo ((TPCClase cla):[]) ar   = ar {clasesArc = ((clasesArc ar) ++ [(armarClase cla [])])}
+armarArchivo ((TPCClase cla):xs) ar   = armarArchivo xs (ar {clasesArc = ((clasesArc ar) ++ [(armarClase cla xs)])})
 armarArchivo (_:[]) ar                = ar 
 armarArchivo (_:xs) ar                = armarArchivo xs ar
 
@@ -326,6 +332,35 @@ strToNombreIns ins = getIndexFromList (separo ins) 1
 
 strToNombreDatoIns :: String -> String
 strToNombreDatoIns ins = getIndexFromList (separo ins) 2
+
+---
+
+armarClase :: String -> [TipoPartCodigo] -> Clase
+armarClase cla ar = armarClase' ar (Clase (strToHerenciaCla cla) (strToNombreCla cla) (strToFirmaCla cla) [] Nothing)
+
+armarClase' :: [TipoPartCodigo] -> Clase -> Clase
+armarClase' ((TPCClaseCIL com):xs) nuevaCla = armarClase' xs (nuevaCla {comentarioCla = Just com})
+armarClase' ((TPCClaseCML com):xs) nuevaCla = armarClase' xs (nuevaCla {comentarioCla = Just com})
+armarClase' ((TPCFuncionClase cla):xs) nuevaCla = armarClase' xs (nuevaCla {whereCla = (whereCla $ nuevaCla) ++ [(armarFuncion cla xs)]})
+armarClase' (_) nuevaCla = nuevaCla
+
+strToHerenciaCla :: String -> Maybe String
+strToHerenciaCla cla = case buscar " => " cla of
+                      Just (ini,fin) -> case buscar " (" ini of
+                                        Just (i,f) -> Just f
+                                        Nothing -> Nothing
+                      Nothing        -> Nothing
+
+strToNombreCla :: String -> String
+strToNombreCla cla | (strToHerenciaCla cla) == Nothing = getIndexFromList (separo cla) 1
+strToNombreCla cla = case buscar " => " cla of
+                      Just (ini,fin) -> case buscar " where" fin of
+                                        Just (i,f) -> (tails i) !! 3
+                                        Nothing -> ""
+                      Nothing        -> ""
+
+strToFirmaCla :: String -> String -- Esto tal vez sacarlo, unificar nombre y firma en uno
+strToFirmaCla cla = ""
 
 ---
 
@@ -394,7 +429,7 @@ datas :: Archivo -> [Data] -- Tipos de dato que genera
 datas (Archivo _ _ d _ _ _) = d
 -- para probar en GHCI : datas $ archivoPruebaDatas
 
-clasePruebaClases = Clase (Just "(Monad m, Monad (t m))") "Transform" "t m" Nothing Nothing
+clasePruebaClases = Clase (Just "(Monad m, Monad (t m))") "Transform" "t m" [] Nothing
 archivoPruebaClases = Archivo (NombreM "") [] [] [clasePruebaClases] [] []
 clases :: Archivo -> [Clase] -- Clases que genera
 clases (Archivo _ _ _ c _ _) = c
