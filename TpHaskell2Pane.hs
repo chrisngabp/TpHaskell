@@ -190,7 +190,8 @@ data TipoPartCodigo =
     TPCDataCIL String | TPCDataCML String |
     TPCClaseCIL String | TPCClaseCML String |
     TPCInstaCIL String | TPCInstaCML String |
-    TPCFuncionCIL String | TPCFuncionCML String deriving (Show)
+    TPCFuncionCIL String | TPCFuncionCML String |
+    TPCFuncionInsta String deriving (Show)
 data EstoyPartCod = CNormal | CNMod | CImport | CData | CClase | CInsta | CFuncion
 
 -- Detecto Tipo de Codigo
@@ -218,8 +219,8 @@ dCod' _ ((TCACod x):xs) | esClase x        = (TPCClase x : dCod' CClase xs)
 dCod' _ ((TCACod x):xs) | esInstancia x    = (TPCInsta x : dCod' CInsta xs)
 dCod' _ ((TCACod x):xs) | esFuncion x      = (TPCFuncion x : dCod' CFuncion xs)
 dCod' CData ((TCACod x):xs)                = (TPCData x : dCod' CData xs)
-dCod' CClase ((TCACod x):xs)               = (TPCClase x : dCod' CClase xs)
-dCod' CInsta ((TCACod x):xs)               = (TPCInsta x : dCod' CInsta xs)
+dCod' CClase ((TCACod x):xs)               = (TPCClase x : dCod' CClase xs) -- funcion clase?
+dCod' CInsta ((TCACod x):xs)               = (TPCFuncionInsta x : dCod' CInsta xs)
 dCod' CFuncion ((TCACod x):xs)             = (TPCFuncion x : dCod' CFuncion xs)
 
 esNombreModulo :: String -> Bool
@@ -272,10 +273,12 @@ armarArchivo :: [TipoPartCodigo] -> Archivo -> Archivo
 --armarArchivo (_:[]) ar                = ar 
 armarArchivo ((TPCNomMod nmod):[]) ar = ar {nombreArc = (strToNomM nmod)}
 armarArchivo ((TPCNomMod nmod):xs) ar = armarArchivo xs (ar {nombreArc = (strToNomM nmod)})
-armarArchivo ((TPCImport imp):[]) ar  = ar {importsArc = ((imports ar) ++ [(armarImport imp [])])}
-armarArchivo ((TPCImport imp):xs) ar  = armarArchivo xs (ar {importsArc = ((imports ar) ++ [(armarImport imp xs)])})
-armarArchivo ((TPCData dat):[]) ar    = ar {datasArc = ((datas ar) ++ [(armarData dat [])])}
-armarArchivo ((TPCData dat):xs) ar    = armarArchivo xs (ar {datasArc = ((datas ar) ++ [(armarData dat xs)])})
+armarArchivo ((TPCImport imp):[]) ar  = ar {importsArc = ((importsArc ar) ++ [(armarImport imp [])])}
+armarArchivo ((TPCImport imp):xs) ar  = armarArchivo xs (ar {importsArc = ((importsArc ar) ++ [(armarImport imp xs)])})
+armarArchivo ((TPCData dat):[]) ar    = ar {datasArc = ((datasArc ar) ++ [(armarData dat [])])}
+armarArchivo ((TPCData dat):xs) ar    = armarArchivo xs (ar {datasArc = ((datasArc $ ar) ++ [(armarData dat xs)])})
+armarArchivo ((TPCInsta ins):[]) ar   = ar {instancesArc = ((instancesArc ar) ++ [(armarInstance ins [])])}
+armarArchivo ((TPCInsta ins):xs) ar   = armarArchivo xs (ar {instancesArc = ((instancesArc ar) ++ [(armarInstance ins xs)])})
 armarArchivo (_:[]) ar                = ar 
 armarArchivo (_:xs) ar                = armarArchivo xs ar
 
@@ -307,6 +310,47 @@ dataDefinicion :: String -> String
 dataDefinicion str = case buscar " = " str of
                             Just (ini,(' ':'=':' ':fin)) -> fin
                             Nothing        -> ""
+----
+
+armarInstance :: String -> [TipoPartCodigo] -> Instancia
+armarInstance ins ar = armarInstance' ar (Instancia (strToNombreIns ins) (strToNombreDatoIns ins) [] Nothing)
+
+armarInstance' :: [TipoPartCodigo] -> Instancia -> Instancia
+armarInstance' ((TPCInstaCIL com):xs) nuevaIns = armarInstance' xs (nuevaIns {comentarioIns = Just com})
+armarInstance' ((TPCInstaCML com):xs) nuevaIns = armarInstance' xs (nuevaIns {comentarioIns = Just com})
+armarInstance' ((TPCFuncionInsta ins):xs) nuevaIns = armarInstance' xs (nuevaIns {whereIns = (whereIns $ nuevaIns) ++ [(armarFuncion ins xs)]})
+armarInstance' (_) nuevaIns = nuevaIns
+
+strToNombreIns :: String -> String
+strToNombreIns ins = getIndexFromList (separo ins) 1
+
+strToNombreDatoIns :: String -> String
+strToNombreDatoIns ins = getIndexFromList (separo ins) 2
+
+---
+
+armarFuncion :: String -> [TipoPartCodigo] -> Funcion
+armarFuncion fun ar = armarFuncion' ar (Funcion (nombreFuncion fun) (firmaFuncion fun) [] Nothing)
+
+armarFuncion' :: [TipoPartCodigo] -> Funcion -> Funcion
+armarFuncion' ((TPCFuncionCIL com):xs) nuevaFun = nuevaFun {comentarioFun = Just com}
+armarFuncion' ((TPCFuncionCML com):xs) nuevaFun = nuevaFun {comentarioFun = Just com}
+--armarFuncion' ((TPCFuncionInsta fun):xs) nuevaFun = nuevaFun
+-- aca podria poner un | indentado > al anterior y hago la recursividad armarFuncion' ((TPCFuncion com):xs) nuevaFun = nuevaFun {whereFun = com}
+armarFuncion' (_) nuevaFun = nuevaFun
+
+nombreFuncion :: String -> NombreF
+nombreFuncion fun = case buscar "=" fun of
+                      Just (ini,fin) -> NombreF fun
+                      Nothing        -> NombreF ""
+
+firmaFuncion :: String -> Maybe String
+firmaFuncion fun = case buscar "::" fun of
+                      Just (ini,(':':':':fin)) -> Just fin
+                      Nothing                  -> Nothing
+
+
+
 
 ----
 archivoVacio :: Archivo
