@@ -185,6 +185,9 @@ tipoPartCodigoAgAStr (TPCInstaCML x) = x
 tipoPartCodigoAgAStr (TPCFuncionCIL x) = x
 tipoPartCodigoAgAStr (TPCFuncionCML x) = x
 
+-- esto se puede acortar
+-- TipoPartCodigo = TipoPartCodigo TPTipo
+-- data TpTipo = TPCNomMod
 data TipoPartCodigo = 
     TPCNomMod String | TPCImport String | 
     TPCData String | TPCClase String | 
@@ -239,14 +242,15 @@ esImport a = tieneImport
    where tieneImport = esPrefijoDe "import " a
 
 esFuncion :: String -> Bool
-esFuncion a = not tieneIndentado && (tieneDosPuntos || tieneIgual)
+esFuncion a = not (tieneIndentado a) && (tieneDosPuntos || tieneIgual)
    where tieneDosPuntos = case buscar " :: " a of
                             Just (_) -> True
                             Nothing  -> False
          tieneIgual     = case buscar " = " a of
                             Just (_) -> True
                             Nothing  -> False
-         tieneIndentado = esPrefijoDe " " a
+
+tieneIndentado a = esPrefijoDe " " a
 
 esData :: String -> Bool
 esData a = tieneData && tieneIgual
@@ -285,6 +289,8 @@ armarArchivo ((TPCInsta ins):[]) ar   = ar {instancesArc = ((instancesArc ar) ++
 armarArchivo ((TPCInsta ins):xs) ar   = armarArchivo xs (ar {instancesArc = ((instancesArc ar) ++ [(armarInstance ins xs)])})
 armarArchivo ((TPCClase cla):[]) ar   = ar {clasesArc = ((clasesArc ar) ++ [(armarClase cla [])])}
 armarArchivo ((TPCClase cla):xs) ar   = armarArchivo xs (ar {clasesArc = ((clasesArc ar) ++ [(armarClase cla xs)])})
+armarArchivo ((TPCFuncion fun):[]) ar | not (tieneIndentado fun) = ar {funcionesArc = ((funcionesArc ar) ++ [(armarFuncion fun [])])}
+armarArchivo ((TPCFuncion fun):xs) ar | not (tieneIndentado fun) = armarArchivo xs (ar {funcionesArc = ((funcionesArc ar) ++ [(armarFuncion fun xs)])})
 armarArchivo (_:[]) ar                = ar 
 armarArchivo (_:xs) ar                = armarArchivo xs ar
 
@@ -365,19 +371,61 @@ strToFirmaCla cla = ""
 ---
 
 armarFuncion :: String -> [TipoPartCodigo] -> Funcion
-armarFuncion fun ar = armarFuncion' ar (Funcion (nombreFuncion fun) (firmaFuncion fun) [] Nothing)
+armarFuncion fun resto = armarFuncion' resto (Funcion (nombreFuncion fun) (firmaFuncion fun) [] Nothing)
+
 
 armarFuncion' :: [TipoPartCodigo] -> Funcion -> Funcion
-armarFuncion' ((TPCFuncionCIL com):xs) nuevaFun = nuevaFun {comentarioFun = Just com}
-armarFuncion' ((TPCFuncionCML com):xs) nuevaFun = nuevaFun {comentarioFun = Just com}
---armarFuncion' ((TPCFuncionInsta fun):xs) nuevaFun = nuevaFun
--- aca podria poner un | indentado > al anterior y hago la recursividad armarFuncion' ((TPCFuncion com):xs) nuevaFun = nuevaFun {whereFun = com}
+armarFuncion' ((TPCFuncionCIL com):xs) nuevaFun = armarFuncion' xs (nuevaFun {comentarioFun = Just com})
+armarFuncion' ((TPCFuncionCML com):xs) nuevaFun = armarFuncion' xs (nuevaFun {comentarioFun = Just com})
+--armarFuncion' ((TPCFuncionInsta fun):xs) nuevaFun = armarFuncion' xs (nuevaFun {whereFun = (whereFun $ nuevaFun) ++ [(armarFuncion fun xs)]})
+--armarFuncion' ((TPCFuncionClase fun):xs) nuevaFun = armarFuncion' xs (nuevaFun {whereFun = (whereFun $ nuevaFun) ++ [(armarFuncion fun xs)]})
+armarFuncion' ((TPCFuncion fun):xs) nuevaFun | tieneIndentado fun = agregarPatrones nuevaFun fun xs
 armarFuncion' (_) nuevaFun = nuevaFun
 
+indentado :: String -> Int
+indentado str = indentado' str 0
+
+indentado' :: String -> Int -> Int
+indentado' (' ':xs) conteo = indentado' xs (succ conteo)
+indentado' (_) conteo = conteo
+
+-- recibo la funcion a agregar sus patrones, la primera linea, todas las demas
+agregarPatrones :: Funcion -> String -> [TipoPartCodigo] -> Funcion
+
+{-
+  aca encontre algo con mayor indentado, llamo recursivamente a armar funcion 
+  y lo agrego al where del patron actual
+-}
+agregarPatrones funEntrada lineaActual ((TPCFuncion proxLinea):xs) | (indentado lineaActual) > (indentado proxLinea) = 
+    agregarPatrones (funEntrada {patronesFun = (patronesFun $ funEntrada) ++ 
+                            agregoAlWhereDelUltimo (patronesFun $ funEntrada) lineaActual ((TPCFuncion proxLinea):xs)
+                            }
+                    ) proxLinea xs
+agregarPatrones funEntrada lineaActual ((TPCFuncion ultimaLinea):[]) = (funEntrada {patronesFun = (patronesFun $ funEntrada) ++ [crearPatron lineaActual]})
+{-
+  aca encontre algo con el mismo indentado, lo agrego a la funcion
+-}
+agregarPatrones funEntrada lineaActual ((TPCFuncion proxLinea):xs) = 
+    agregarPatrones (funEntrada {patronesFun = (patronesFun $ funEntrada) ++ [crearPatron lineaActual]}) proxLinea xs
+
+{-
+  aca encontre algo con menor indentado, 
+-}
+
+agregarPatrones funEntrada _ _ = (funEntrada {nombreFun = test $ (nombreFun $ funEntrada)})
+
+test :: NombreF -> NombreF
+test (NombreF nom) = NombreF (nom ++ "test")
+
+---
+crearPatron linea = Patron (Left (Expresion linea)) [] Nothing
+
+agregoAlWhereDelUltimo :: [Patron] -> String -> [TipoPartCodigo] -> [Patron]
+agregoAlWhereDelUltimo (x:[]) linea resto = [(x {wherePat = ((wherePat $ x) ++ [armarFuncion linea resto]) })]
+agregoAlWhereDelUltimo (x:xs) linea resto = agregoAlWhereDelUltimo xs linea resto
+
 nombreFuncion :: String -> NombreF
-nombreFuncion fun = case buscar "=" fun of
-                      Just (ini,fin) -> NombreF fun
-                      Nothing        -> NombreF ""
+nombreFuncion fun = NombreF fun -- habría ver que querriamos hacer aca
 
 firmaFuncion :: String -> Maybe String
 firmaFuncion fun = case buscar "::" fun of
@@ -444,8 +492,8 @@ nombres :: Archivo -> [Nombre] -- Lista de clases, datos, funciones, etc incluid
 
 bloqueFuncionPrueba1 = Expresion "a | a < 5 = a + 1"
 bloqueFuncionPrueba2 = Expresion "a = a"
-patronFuncionPrueba = Patron (Left bloqueFuncionPrueba1) Nothing Nothing
-patronFuncionPrueba2 = Patron (Left bloqueFuncionPrueba2 ) Nothing (Just "-- comento esto")
+patronFuncionPrueba = Patron (Left bloqueFuncionPrueba1) [] Nothing
+patronFuncionPrueba2 = Patron (Left bloqueFuncionPrueba2 ) [] (Just "-- comento esto")
 funcionPruebaAgregoFuncion = Funcion (NombreF "miFuncion") (Just "a -> a") [patronFuncionPrueba, patronFuncionPrueba2] Nothing
 archivoConFuncionAgregada = fromQuizas $ agregoFuncion funcionPruebaAgregoFuncion archivoPruebaModulo
 
@@ -467,6 +515,8 @@ sacoFuncion f (Archivo nm im d c ins fa) = Archivo nm im d c ins (sacoFuncion' (
 sacoFuncion' _ []                 = []
 sacoFuncion' x@(Funcion f1 _ _ _) (y@(Funcion f2 _ _ _):ys) | f1 == f2    = sacoFuncion' x ys
                                                             | otherwise   = y : sacoFuncion' x ys
+
+                                                            -- sacar la recursividad
 
 creoFuncionSoloConNombre :: NombreF -> Funcion
 creoFuncionSoloConNombre f = Funcion f Nothing [] Nothing
