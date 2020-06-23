@@ -2,6 +2,7 @@ module TpHaskell2Index where
 
 import LoadFile
 import TpHaskell2Estructuras
+import Debug.Trace
 
 {-
 -
@@ -389,40 +390,37 @@ indentado' :: String -> Int -> Int
 indentado' (' ':xs) conteo = indentado' xs (succ conteo)
 indentado' (_) conteo = conteo
 
--- recibo la funcion a agregar sus patrones, la primera linea, todas las demas
 agregarPatrones :: Funcion -> String -> [TipoPartCodigo] -> Funcion
+agregarPatrones funPadre patron (TPCFuncion proxFun:[]) = funPadre{patronesFun = (patronesFun $ funPadre) ++ [crearPatron patron]}
+agregarPatrones funPadre patron (TPCFuncion proxFun:rest) = funPadre{patronesFun = (patronesFun $ funPadre) ++ [agregarPatronesRecursivo (crearPatron patron) proxFun rest]}
+--agregarPatrones funPadre _ _ = funPadre
 
-{-
-  aca encontre algo con mayor indentado, llamo recursivamente a armar funcion 
-  y lo agrego al where del patron actual
--}
-agregarPatrones funEntrada lineaActual ((TPCFuncion proxLinea):xs) | (indentado lineaActual) > (indentado proxLinea) = 
-    agregarPatrones (funEntrada {patronesFun = (patronesFun $ funEntrada) ++ 
-                            agregoAlWhereDelUltimo (patronesFun $ funEntrada) lineaActual ((TPCFuncion proxLinea):xs)
-                            }
-                    ) proxLinea xs
-agregarPatrones funEntrada lineaActual ((TPCFuncion ultimaLinea):[]) = (funEntrada {patronesFun = (patronesFun $ funEntrada) ++ [crearPatron lineaActual]})
-{-
-  aca encontre algo con el mismo indentado, lo agrego a la funcion
--}
-agregarPatrones funEntrada lineaActual ((TPCFuncion proxLinea):xs) = 
-    agregarPatrones (funEntrada {patronesFun = (patronesFun $ funEntrada) ++ [crearPatron lineaActual]}) proxLinea xs
+agregarPatronesRecursivo :: Patron -> String -> [TipoPartCodigo] -> Patron
+agregarPatronesRecursivo patron fun (TPCFuncion proxFun:rest) | (indentado fun) > (indentado (maybeNombreFuncion(ultimoWherePat patron))) = 
+    case (ultimoWherePat patron) of
+      Just f  -> patron {wherePat = (wherePat $ patron) ++ [agregarPatrones f proxFun rest]}
+      Nothing -> patron {wherePat = [agregarPatrones (armarFuncion fun (TPCFuncion proxFun:rest)) proxFun rest]}
 
-{-
-  aca encontre algo con menor indentado, 
--}
+--agregarPatronesRecursivo patron fun _ = crearPatron fun
+agregarPatronesRecursivo patron _ _ = patron
 
-agregarPatrones funEntrada _ _ = (funEntrada {nombreFun = test $ (nombreFun $ funEntrada)})
+ultimoWherePat :: Patron -> Maybe Funcion
+ultimoWherePat patron = ultimoWherePat' (wherePat $ patron)
 
-test :: NombreF -> NombreF
-test (NombreF nom) = NombreF (nom ++ "test")
+ultimoWherePat' :: [Funcion] -> Maybe Funcion
+ultimoWherePat' ([])   = Nothing
+ultimoWherePat' (x:[]) = Just x
+ultimoWherePat' (_:xs) = ultimoWherePat' xs
+
+nombreFtoStr :: NombreF -> String
+nombreFtoStr (NombreF nom) = nom
+
+maybeNombreFuncion :: Maybe Funcion -> String
+maybeNombreFuncion (Just f) = nombreFtoStr $ nombreFun $ f
+maybeNombreFuncion Nothing = ""
 
 ---
 crearPatron linea = Patron (Left (Expresion linea)) [] Nothing
-
-agregoAlWhereDelUltimo :: [Patron] -> String -> [TipoPartCodigo] -> [Patron]
-agregoAlWhereDelUltimo (x:[]) linea resto = [(x {wherePat = ((wherePat $ x) ++ [armarFuncion linea resto]) })]
-agregoAlWhereDelUltimo (x:xs) linea resto = agregoAlWhereDelUltimo xs linea resto
 
 nombreFuncion :: String -> NombreF
 nombreFuncion fun = NombreF fun -- habría ver que querriamos hacer aca
