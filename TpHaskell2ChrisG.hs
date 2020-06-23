@@ -134,7 +134,7 @@ datas :: Archivo -> [Data] -- Tipos de dato que genera
 datas (Archivo _ _ d _ _ _) = d
 -- para probar en GHCI : datas $ archivoPruebaDatas
 
-clasePruebaClases = Clase (Just "(Monad m, Monad (t m))") "Transform" "t m" [] Nothing
+clasePruebaClases = Clase (Just "(Monad m, Monad (t m))") "Transform" "t m" Nothing Nothing
 archivoPruebaClases = Archivo (NombreM "") [] [] [clasePruebaClases] [] []
 clases :: Archivo -> [Clase] -- Clases que genera
 clases (Archivo _ _ _ c _ _) = c
@@ -176,6 +176,61 @@ sacoFuncion' x@(Funcion f1 _ _ _) (y@(Funcion f2 _ _ _):ys) | f1 == f2    = saco
 creoFuncionSoloConNombre :: NombreF -> Funcion
 creoFuncionSoloConNombre f = Funcion f Nothing [] Nothing
 
+
+-- Arc Vacio OK
+archivoVacio :: Archivo
+archivoVacio = (Archivo Nothing [] [] [] [] [])
+
+
+--AGREGAR COMENTARIOS 
+
+-- Comentario Data OK
+agregarComentarioAData :: Data -> String -> Data
+agregarComentarioAData (Data nd cod _) x = (Data nd cod (Just x))
+
+-- Comentario Funcion OK
+agregarComentarioAFuncion :: Funcion -> String -> Funcion
+agregarComentarioAFuncion (Funcion nomb mfir pat _) x = (Funcion nomb mfir pat (Just x)) 
+
+-- Comentario Instancia OK
+agregarComentarioAInstancia :: Instancia -> String -> Instancia
+agregarComentarioAInstancia (Instancia ncla nins [] _) x = (Instancia ncla nins [] (Just x))
+
+agregoComentarioAListaDeInstancias :: [Instancia] -> String -> String -> String -> [Instancia]
+agregoComentarioAListaDeInstancias  _ _ _ [] = [] 
+agregoComentarioAListaDeInstancias ( (Instancia ncla nins ecu mcom ) : xs ) x y com | ncla == x && nins == y =  ( (Instancia ncla nins ecu (Just com)): xs )
+agregoComentarioAListaDeInstancias ( (Instancia ncla nins ecu mcom ) : xs ) x y com =  ( (Instancia ncla nins ecu mcom ) : (agregoComentarioAListaDeInstancias xs x y com))
+
+
+-- Comentario Clase OK
+agregoComentarioAClase :: Archivo -> String -> String -> Archivo
+agregoComentarioAClase (Archivo nom im dat cla ins fun) x y = (Archivo nom im dat (agregarComentarioAListaDeClases c x y) ins fun)
+
+agregarComentarioAListaDeClases :: [Clase] -> String -> String -> [Clase]
+agregarComentarioAListaDeClases _ _ [] = []
+agregarComentarioAListaDeClases ((Clase ncla tdat fun mcom):xs) x y | ncla == x = ((Clase ncla tdat fun (Just y)):xs)
+agregarComentarioAListaDeClases ((Clase ncla tdat fun mcom):xs) x y = ((Clase ncla tdat fun mcom): (agregarComentarioAListaDeClases xs x y))
+
+
+--Mostrar listado del Archivo OK
+nombres :: Archivo -> [Nombre]
+nombres (Archivo im dat cla ins fun) = listar im ++ listar dat ++ listar cla ++ listar ins ++ listar fun
+nombres (Archivo (Just mnm) im dat cla ins fun) = listar mnm ++ listar im ++ listar dat ++ listar cla ++ listar ins ++ listar fun
+
+listar [] = Nothing
+listar (x:[]) = "\n" ++ show x ++ "\n"
+listar (x:xs) = "\n" ++ show x ++ listar xs
+
+
+
+
+
+
+
 -- Esto no es necesario sacoFuncion f (Archivo nm im d c ins fa) = Error "La funcion no existe"
 
 --sacoFuncion :: NombreF -> Archivo -> Archivo -- Devuelve el Archivo sacando una función
+
+
+-- Archivo nombre maybe comentarios importacion data clase funcion instancias
+-- Archivo nm im d c ins fa
