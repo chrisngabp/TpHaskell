@@ -205,7 +205,7 @@ data EstoyPartCod = CNormal | CNMod | CImport | CData | CClase | CInsta | CFun
 -- Detecto Tipo de Codigo
 dCod :: [TipoCodigoAg] -> [TipoPartCodigo]
 dCod a = dCod' CNormal a
-
+-- Separo cada Cod o Comentario en algo mas especifico, tipo de comentario o de codigo
 dCod' :: EstoyPartCod -> [TipoCodigoAg] -> [TipoPartCodigo]
 dCod' _ []                                 = []
 dCod' CNormal ((TCAComIL x):xs)            = (TPCCIL x : dCod' CNormal xs)
@@ -278,6 +278,7 @@ pruebaArchivoALista = quitarQuizas $ (aC <$> dCom archivoCargado)
 
 ----
 
+-- Armo el archivo con toda la lista de partes de codigo
 armarArchivo :: [TipoPartCodigo] -> Archivo -> Archivo
 --armarArchivo (_:[]) ar                = ar 
 armarArchivo ((TPCNomMod nmod):[]) ar = ar {nombreArc = (strToNomM nmod)}
@@ -290,6 +291,7 @@ armarArchivo ((TPCInsta ins):[]) ar   = ar {instancesArc = ((instancesArc ar) ++
 armarArchivo ((TPCInsta ins):xs) ar   = armarArchivo xs (ar {instancesArc = ((instancesArc ar) ++ [(armarInstance ins xs)])})
 armarArchivo ((TPCClase cla):[]) ar   = ar {clasesArc = ((clasesArc ar) ++ [(armarClase cla [])])}
 armarArchivo ((TPCClase cla):xs) ar   = armarArchivo xs (ar {clasesArc = ((clasesArc ar) ++ [(armarClase cla xs)])})
+-- aca miro que no tenga indentado, asi me aseguro que es una cabecera de funcion y no parte de otra
 armarArchivo ((TPCFuncion fun):[]) ar | not (tieneIndentado fun) = ar {funcionesArc = ((funcionesArc ar) ++ [(armarFuncion fun [])])}
 armarArchivo ((TPCFuncion fun):xs) ar | not (tieneIndentado fun) = armarArchivo xs (ar {funcionesArc = ((funcionesArc ar) ++ [(armarFuncion fun xs)])})
 armarArchivo (_:[]) ar                = ar 
@@ -371,16 +373,20 @@ strToFirmaCla cla = ""
 
 ---
 
+-- Aca armo la funcion, recibo la primera linea de la funcion y toda la lista que sigue
+-- para poder agregar los comentarios y los patrones
 armarFuncion :: String -> [TipoPartCodigo] -> Funcion
 armarFuncion fun resto = armarFuncion' resto (Funcion (nombreFuncion fun) (firmaFuncion fun) [] Nothing)
-
 
 armarFuncion' :: [TipoPartCodigo] -> Funcion -> Funcion
 armarFuncion' ((TPCFuncionCIL com):xs) nuevaFun = armarFuncion' xs (nuevaFun {comentarioFun = Just com})
 armarFuncion' ((TPCFuncionCML com):xs) nuevaFun = armarFuncion' xs (nuevaFun {comentarioFun = Just com})
 --armarFuncion' ((TPCFuncionInsta fun):xs) nuevaFun = armarFuncion' xs (nuevaFun {whereFun = (whereFun $ nuevaFun) ++ [(armarFuncion fun xs)]})
 --armarFuncion' ((TPCFuncionClase fun):xs) nuevaFun = armarFuncion' xs (nuevaFun {whereFun = (whereFun $ nuevaFun) ++ [(armarFuncion fun xs)]})
+
+-- aca miro que haya indentado y el indentado de la proxima funcion sea mayor al de la linea actual, si es asi debe ser patron de esta
 armarFuncion' ((TPCFuncion fun):xs) nuevaFun | (tieneIndentado fun) && ((indentado fun) > (indentado (nombreFtoStr(nombreFun nuevaFun)))) = agregarPatrones nuevaFun fun xs
+-- aca miro que tenga indentado, pero no es patron, es decir tiene el mismo indentado o menor
 armarFuncion' ((TPCFuncion fun):xs) nuevaFun | (tieneIndentado fun) = armarFuncion' xs (nuevaFun {patronesFun = patronesFun (nuevaFun) ++ [crearPatron fun]})
 armarFuncion' (_) nuevaFun = nuevaFun
 
@@ -393,14 +399,18 @@ indentado' (_) conteo = conteo
 
 trace_show s x = trace (s ++ ":" ++ show x) x
 
+-- Aca agrego los patrones de cada funcion, recibo la funcion padre y el primer patron y el resto de la lista
 agregarPatrones :: Funcion -> String -> [TipoPartCodigo] -> Funcion
 --agregarPatrones funPadre patron xs | ((indentado patron) == (indentado (nombreFtoStr(nombreFun funPadre)))) = funPadre{patronesFun = (patronesFun $ funPadre) ++ [crearPatron patron]} 
 agregarPatrones funPadre patron (TPCFuncion proxFun:[]) = funPadre{patronesFun = (patronesFun $ funPadre) ++ [crearPatron patron]}
 agregarPatrones funPadre patron (TPCFuncion proxFun:rest) = funPadre{patronesFun = (patronesFun $ funPadre) ++ [agregarPatronesRecursivo (crearPatron patron) proxFun rest]}
 --agregarPatrones funPadre _ _ = funPadre
 
+-- Aca me fijo si debo agregar un where dentro del patron
 agregarPatronesRecursivo :: Patron -> String -> [TipoPartCodigo] -> Patron
 --agregarPatronesRecursivo patron fun (TPCFuncion proxFun:rest) | trace ("Entra : Funcion <<" ++ fun ++ ">> : FuncionPatron <<" ++ maybeNombreFuncion(ultimoWherePat patron) ++ ">>") False = undefined
+
+-- si el indentado de la proxima funcion es mayor al de la anterior, agrego al where
 agregarPatronesRecursivo patron fun (TPCFuncion proxFun:rest) | (indentado fun) > (indentado (maybeNombreFuncion(ultimoWherePat patron))) = 
     case (ultimoWherePat patron) of
       --Just f | trace ("Entra : Funcion <<" ++ fun ++ ">> : FuncionPatron <<" ++ maybeNombreFuncion(ultimoWherePat patron) ++ ">>") False -> undefined
@@ -410,6 +420,7 @@ agregarPatronesRecursivo patron fun (TPCFuncion proxFun:rest) | (indentado fun)
 --agregarPatronesRecursivo patron fun _ = crearPatron fun
 agregarPatronesRecursivo patron _ _ = patron
 
+-- esto busca dentro de los where de un patron, el ultimo
 ultimoWherePat :: Patron -> Maybe Funcion
 ultimoWherePat patron = ultimoWherePat' (wherePat $ patron)
 
