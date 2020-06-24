@@ -391,16 +391,21 @@ indentado' :: String -> Int -> Int
 indentado' (' ':xs) conteo = indentado' xs (succ conteo)
 indentado' (_) conteo = conteo
 
+trace_show s x = trace (s ++ ":" ++ show x) x
+
 agregarPatrones :: Funcion -> String -> [TipoPartCodigo] -> Funcion
+--agregarPatrones funPadre patron xs | ((indentado patron) == (indentado (nombreFtoStr(nombreFun funPadre)))) = funPadre{patronesFun = (patronesFun $ funPadre) ++ [crearPatron patron]} 
 agregarPatrones funPadre patron (TPCFuncion proxFun:[]) = funPadre{patronesFun = (patronesFun $ funPadre) ++ [crearPatron patron]}
 agregarPatrones funPadre patron (TPCFuncion proxFun:rest) = funPadre{patronesFun = (patronesFun $ funPadre) ++ [agregarPatronesRecursivo (crearPatron patron) proxFun rest]}
 --agregarPatrones funPadre _ _ = funPadre
 
 agregarPatronesRecursivo :: Patron -> String -> [TipoPartCodigo] -> Patron
+--agregarPatronesRecursivo patron fun (TPCFuncion proxFun:rest) | trace ("Entra : Funcion <<" ++ fun ++ ">> : FuncionPatron <<" ++ maybeNombreFuncion(ultimoWherePat patron) ++ ">>") False = undefined
 agregarPatronesRecursivo patron fun (TPCFuncion proxFun:rest) | (indentado fun) > (indentado (maybeNombreFuncion(ultimoWherePat patron))) = 
     case (ultimoWherePat patron) of
-      Just f  -> patron {wherePat = (wherePat $ patron) ++ [agregarPatrones f proxFun rest]}
-      Nothing -> patron {wherePat = [agregarPatrones (armarFuncion fun (TPCFuncion proxFun:rest)) proxFun rest]}
+      --Just f | trace ("Entra : Funcion <<" ++ fun ++ ">> : FuncionPatron <<" ++ maybeNombreFuncion(ultimoWherePat patron) ++ ">>") False -> undefined
+      Just f  -> patron {wherePat = (wherePat $ patron) ++ [agregarPatrones f proxFun rest]}--(wherePat $ patron) ++ [agregarPatrones f proxFun rest]}
+      Nothing -> patron {wherePat = [agregarPatrones (armarFuncion fun rest) proxFun rest]}
 
 --agregarPatronesRecursivo patron fun _ = crearPatron fun
 agregarPatronesRecursivo patron _ _ = patron
