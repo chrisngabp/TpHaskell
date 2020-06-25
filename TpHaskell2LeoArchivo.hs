@@ -2,6 +2,7 @@ module TpHaskell2LeoArchivo where
 
 import LoadFile
 import TpHaskell2Estructuras
+import TpHaskell2Funciones
 import Debug.Trace
 
 
@@ -21,8 +22,6 @@ tipoCodigoAChr :: TipoCodigo -> Char
 tipoCodigoAChr (TCCod x) = x
 tipoCodigoAChr (TCComIL x) = x
 tipoCodigoAChr (TCComML x) = x
-
-fromQuizas (OK x) = x
 
 lineas :: String -> [String]
 lineas ""           = []

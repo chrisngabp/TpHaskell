@@ -118,7 +118,7 @@ buscoFuncion :: String -> Archivo -> [Funcion] -- Devuelve las funciones en dond
 agregoDato :: Data -> Archivo -> Quizas Archivo -- Agrega un tipo de dato
 sacoDato :: NombreM -> Archivo -> Archivo -- Saca un tipo de dato
 agregoInstancia :: Instancia -> Archivo -> Quizas Archivo -- Agrega una instancia
-sacoInstancia :: NombreM -> NombreM -> Archivo -> Archivo -- Saca una instancia de un Dato y Clase
+sacoInstancia :: NombreM -> Archivo -> Archivo -- Saca una instancia de un Dato y Clase
 
 -- Chris G
 agregoComentario :: Comentario -> Nombre -> Archivo -> Quizas Archivo -- Agrego un comentario a determinada Función, Data, etc. Si ya contiene uno, lo agrega al comentario anterior.

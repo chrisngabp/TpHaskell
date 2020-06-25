@@ -1,16 +1,26 @@
-module TpHaskell2Index where
+module TpHaskell2Funciones where
 
-import LoadFile
 import TpHaskell2Estructuras
-import TpHaskell2LeoArchivo
 
+-- Esto lo hicimos entre todos
 {-
 -
 - INICIO DE FUNCIONES
 -
 -}
 
--- Esto lo uso para probar
+fromQuizas (OK x) = x
+
+-- Comentarios
+data Comentado a = Comentado String a
+
+comentarioAString :: Comentario -> String
+comentarioAString Nothing = ""
+comentarioAString (Just x) = x
+
+stringAComentario :: String -> Comentario
+stringAComentario [] = Nothing
+stringAComentario x = Just x
 
 archivoPruebaModulo = Archivo (NombreM "TpHaskell2Index") [] [] [] [] []
 modulo :: Archivo -> Quizas NombreM -- Devuelve el módulo
@@ -76,6 +86,9 @@ creoFuncionSoloConNombre f = Funcion f Nothing [] Nothing
 
 --sacoFuncion :: NombreF -> Archivo -> Archivo -- Devuelve el Archivo sacando una función
 
+-- Hasta acá hicimos entre todos
+
+  
 -- Flor
 agregoDato :: Data -> Archivo -> Quizas Archivo -- Agrega un tipo de dato
 agregoDato d (Archivo nm im ds c ins fa) | yaExisteDato d ds = Error "El dato ya existe"
@@ -89,17 +102,17 @@ dataIguales :: Data -> Data -> Bool
 dataIguales (Data nombre definicion _ ) (Data otroNombre otraDefinicion _ ) = (nombre == otroNombre) && (definicion == otraDefinicion)
 
 sacoDato :: NombreM -> Archivo -> Archivo -- Saca un tipo de dato
-sacoDato d2 (Archivo nm im d c ins fa) = Archivo nm im d c ins (sacoDato' (creoDatoSoloConNombre d2) fa)
+sacoDato d2 (Archivo nm im d c ins fa) = Archivo nm im (sacoDato' (creoDatoSoloConNombre d2) d) c ins fa
 
 sacoDato' _ []                 = []
 sacoDato' x@(Data d1 _ _) (y@(Data d2 _ _):ys) | d1 == d2    = sacoDato' x ys
                                                | otherwise   = y : sacoDato' x ys
 creoDatoSoloConNombre :: NombreM -> Data
-creoDatoSoloConNombre nombre = Data nombre Nothing Nothing
+creoDatoSoloConNombre (NombreM nombre) = Data nombre [] Nothing
 
 agregoInstancia :: Instancia -> Archivo -> Quizas Archivo -- Agrega una instancia
-agregoInstancia instancia (Archivo nm im ds c ins fa) | yaExistInstancia instancia ins = Error "La instancia ya existe"
-agregoDato instancia (Archivo nm im ds c ins fa) = OK (Archivo nm im ds c (instancia:ins) fa)
+agregoInstancia instancia (Archivo nm im ds c ins fa) | yaExisteInstancia instancia ins = Error "La instancia ya existe"
+agregoInstancia instancia (Archivo nm im ds c ins fa) = OK (Archivo nm im ds c (instancia:ins) fa)
 
 yaExisteInstancia :: Instancia -> [Instancia] -> Bool
 yaExisteInstancia instancia (otraInstancia:inst) = if instIguales instancia otraInstancia then True else yaExisteInstancia instancia inst
@@ -115,15 +128,15 @@ agregoElemento elemento (Archivo nm im ds c ins fa) | elemento is Instancia = OK
                                                     | elemento is Data = OK (Archivo nm im (elemento:ds) c ins fa)
 --} -- TO DO ver el operador "is"
 
-sacoInstancia :: NombreClase -> NombreClase -> Archivo -> Archivo -- Saca una instancia de un Dato y Clase
+sacoInstancia :: NombreClase -> Archivo -> Archivo -- Saca una instancia de un Dato y Clase
 sacoInstancia instancia (Archivo nm im d c ins fa) = Archivo nm im d c (sacoInstancia' (creoInstanciaSoloConNombre instancia) ins) fa
 
-sacoInstancia' _ []                 = []
-sacoInstancia' x@(Instancia d1 _ _) (y@(Instancia d2 _ _):ys) | d1 == d2    = sacoInstancia' x ys
-                                               | otherwise   = y : sacoInstancia' x ys
+sacoInstancia' _ []                                                             = []
+sacoInstancia' x@(Instancia d1 _ _ _) (y@(Instancia d2 _ _ _):ys) | d1 == d2    = sacoInstancia' x ys
+                                                                  | otherwise   = y : sacoInstancia' x ys
 
 creoInstanciaSoloConNombre :: NombreClase -> Instancia
-creoInstanciaSoloConNombre nombre = Instancia nombre Nothing Nothing Nothing
+creoInstanciaSoloConNombre nombre = Instancia nombre "" [] Nothing
 
 toNombreF :: String -> NombreF -- nombre de la funcion
 toNombreF nombre = NombreF nombre      -- Validar con los chicos
@@ -135,8 +148,8 @@ toNombre :: EsNombre a => a -> Nombre
 toNombre nombre --}
 
 fromNombre :: Nombre -> String
-fromNombre nombre | NM = fromNombreM nombre
-                  | NF = fromNombreF nombre
+fromNombre (NM nombre) = fromNombreM nombre
+fromNombre (NF nombre) = fromNombreF nombre
 
 fromNombreM :: NombreM -> String
 fromNombreM (NombreM nombre) = nombre
