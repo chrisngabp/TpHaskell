@@ -2,6 +2,7 @@ module TpHaskell2Index where
 
 import LoadFile
 import TpHaskell2Estructuras
+import Debug.Trace
 
 {-
 -
@@ -139,6 +140,10 @@ separo str = case dropWhile esEspacio str of
                         where (w, str'') =
                                 break esEspacio str'
 
+tails                   :: [a] -> [[a]]
+tails []                =  [[]]
+tails xxs@(_:xs)        =  xxs : tails xs
+
 esEspacio :: Char -> Bool
 esEspacio ' ' = True
 esEspacio _ = False
@@ -181,6 +186,9 @@ tipoPartCodigoAgAStr (TPCInstaCML x) = x
 tipoPartCodigoAgAStr (TPCFuncionCIL x) = x
 tipoPartCodigoAgAStr (TPCFuncionCML x) = x
 
+-- esto se puede acortar
+-- TipoPartCodigo = TipoPartCodigo TPTipo
+-- data TpTipo = TPCNomMod
 data TipoPartCodigo = 
     TPCNomMod String | TPCImport String | 
     TPCData String | TPCClase String | 
@@ -191,13 +199,13 @@ data TipoPartCodigo =
     TPCClaseCIL String | TPCClaseCML String |
     TPCInstaCIL String | TPCInstaCML String |
     TPCFuncionCIL String | TPCFuncionCML String |
-    TPCFuncionInsta String deriving (Show)
+    TPCFuncionInsta String | TPCFuncionClase String deriving (Show)
 data EstoyPartCod = CNormal | CNMod | CImport | CData | CClase | CInsta | CFuncion
 
 -- Detecto Tipo de Codigo
 dCod :: [TipoCodigoAg] -> [TipoPartCodigo]
 dCod a = dCod' CNormal a
-
+-- Separo cada Cod o Comentario en algo mas especifico, tipo de comentario o de codigo
 dCod' :: EstoyPartCod -> [TipoCodigoAg] -> [TipoPartCodigo]
 dCod' _ []                                 = []
 dCod' CNormal ((TCAComIL x):xs)            = (TPCCIL x : dCod' CNormal xs)
@@ -219,7 +227,7 @@ dCod' _ ((TCACod x):xs) | esClase x        = (TPCClase x : dCod' CClase xs)
 dCod' _ ((TCACod x):xs) | esInstancia x    = (TPCInsta x : dCod' CInsta xs)
 dCod' _ ((TCACod x):xs) | esFuncion x      = (TPCFuncion x : dCod' CFuncion xs)
 dCod' CData ((TCACod x):xs)                = (TPCData x : dCod' CData xs)
-dCod' CClase ((TCACod x):xs)               = (TPCClase x : dCod' CClase xs) -- funcion clase?
+dCod' CClase ((TCACod x):xs)               = (TPCFuncionClase x : dCod' CClase xs)
 dCod' CInsta ((TCACod x):xs)               = (TPCFuncionInsta x : dCod' CInsta xs)
 dCod' CFuncion ((TCACod x):xs)             = (TPCFuncion x : dCod' CFuncion xs)
 
@@ -235,14 +243,15 @@ esImport a = tieneImport
    where tieneImport = esPrefijoDe "import " a
 
 esFuncion :: String -> Bool
-esFuncion a = not tieneIndentado && (tieneDosPuntos || tieneIgual)
+esFuncion a = not (tieneIndentado a) && (tieneDosPuntos || tieneIgual)
    where tieneDosPuntos = case buscar " :: " a of
                             Just (_) -> True
                             Nothing  -> False
          tieneIgual     = case buscar " = " a of
                             Just (_) -> True
                             Nothing  -> False
-         tieneIndentado = esPrefijoDe " " a
+
+tieneIndentado a = esPrefijoDe " " a
 
 esData :: String -> Bool
 esData a = tieneData && tieneIgual
@@ -269,6 +278,7 @@ pruebaArchivoALista = quitarQuizas $ (aC <$> dCom archivoCargado)
 
 ----
 
+-- Armo el archivo con toda la lista de partes de codigo
 armarArchivo :: [TipoPartCodigo] -> Archivo -> Archivo
 --armarArchivo (_:[]) ar                = ar 
 armarArchivo ((TPCNomMod nmod):[]) ar = ar {nombreArc = (strToNomM nmod)}
@@ -279,8 +289,17 @@ armarArchivo ((TPCData dat):[]) ar    = ar {datasArc = ((datasArc ar) ++ [(armar
 armarArchivo ((TPCData dat):xs) ar    = armarArchivo xs (ar {datasArc = ((datasArc $ ar) ++ [(armarData dat xs)])})
 armarArchivo ((TPCInsta ins):[]) ar   = ar {instancesArc = ((instancesArc ar) ++ [(armarInstance ins [])])}
 armarArchivo ((TPCInsta ins):xs) ar   = armarArchivo xs (ar {instancesArc = ((instancesArc ar) ++ [(armarInstance ins xs)])})
+armarArchivo ((TPCClase cla):[]) ar   = ar {clasesArc = ((clasesArc ar) ++ [(armarClase cla [])])}
+armarArchivo ((TPCClase cla):xs) ar   = armarArchivo xs (ar {clasesArc = ((clasesArc ar) ++ [(armarClase cla xs)])})
+-- aca miro que no tenga indentado, asi me aseguro que es una cabecera de funcion y no parte de otra
+armarArchivo ((TPCFuncion fun):_) ar | trace ("armarArchivo <<" ++ fun ++ ">>") False = undefined
+armarArchivo ((TPCFuncion fun):[]) ar | not (tieneIndentado fun) = let (func,resto) = armarFuncion fun [] in
+                                                                      ar {funcionesArc = ((funcionesArc ar) ++ [func])}
+armarArchivo ((TPCFuncion fun):xs) ar | not (tieneIndentado fun) = let (func,resto) = armarFuncion fun ((TPCFuncion fun):xs) in 
+                                                                      armarArchivo resto (ar {funcionesArc = funcionesArc ar ++ [func]})
 armarArchivo (_:[]) ar                = ar 
 armarArchivo (_:xs) ar                = armarArchivo xs ar
+armarArchivo [] ar = ar
 
 
 --
@@ -318,7 +337,8 @@ armarInstance ins ar = armarInstance' ar (Instancia (strToNombreIns ins) (strToN
 armarInstance' :: [TipoPartCodigo] -> Instancia -> Instancia
 armarInstance' ((TPCInstaCIL com):xs) nuevaIns = armarInstance' xs (nuevaIns {comentarioIns = Just com})
 armarInstance' ((TPCInstaCML com):xs) nuevaIns = armarInstance' xs (nuevaIns {comentarioIns = Just com})
-armarInstance' ((TPCFuncionInsta ins):xs) nuevaIns = armarInstance' xs (nuevaIns {whereIns = (whereIns $ nuevaIns) ++ [(armarFuncion ins xs)]})
+armarInstance' ((TPCFuncionInsta ins):xs) nuevaIns = let (resp,ar) = armarFuncion ins xs in 
+    armarInstance' ar (nuevaIns {whereIns = (whereIns $ nuevaIns) ++ [resp]})
 armarInstance' (_) nuevaIns = nuevaIns
 
 strToNombreIns :: String -> String
@@ -329,20 +349,115 @@ strToNombreDatoIns ins = getIndexFromList (separo ins) 2
 
 ---
 
-armarFuncion :: String -> [TipoPartCodigo] -> Funcion
-armarFuncion fun ar = armarFuncion' ar (Funcion (nombreFuncion fun) (firmaFuncion fun) [] Nothing)
+armarClase :: String -> [TipoPartCodigo] -> Clase
+armarClase cla ar = armarClase' ar (Clase (strToHerenciaCla cla) (strToNombreCla cla) (strToFirmaCla cla) [] Nothing)
 
-armarFuncion' :: [TipoPartCodigo] -> Funcion -> Funcion
-armarFuncion' ((TPCFuncionCIL com):xs) nuevaFun = nuevaFun {comentarioFun = Just com}
-armarFuncion' ((TPCFuncionCML com):xs) nuevaFun = nuevaFun {comentarioFun = Just com}
---armarFuncion' ((TPCFuncionInsta fun):xs) nuevaFun = nuevaFun
--- aca podria poner un | indentado > al anterior y hago la recursividad armarFuncion' ((TPCFuncion com):xs) nuevaFun = nuevaFun {whereFun = com}
-armarFuncion' (_) nuevaFun = nuevaFun
+armarClase' :: [TipoPartCodigo] -> Clase -> Clase
+armarClase' ((TPCClaseCIL com):xs) nuevaCla = armarClase' xs (nuevaCla {comentarioCla = Just com})
+armarClase' ((TPCClaseCML com):xs) nuevaCla = armarClase' xs (nuevaCla {comentarioCla = Just com})
+armarClase' ((TPCFuncionClase cla):xs) nuevaCla = let (resp, ar) = armarFuncion cla xs in
+    armarClase' ar (nuevaCla {whereCla = (whereCla $ nuevaCla) ++ [resp]})
+armarClase' (_) nuevaCla = nuevaCla
+
+strToHerenciaCla :: String -> Maybe String
+strToHerenciaCla cla = case buscar " => " cla of
+                      Just (ini,fin) -> case buscar " (" ini of
+                                        Just (i,f) -> Just f
+                                        Nothing -> Nothing
+                      Nothing        -> Nothing
+
+strToNombreCla :: String -> String
+strToNombreCla cla | (strToHerenciaCla cla) == Nothing = getIndexFromList (separo cla) 1
+strToNombreCla cla = case buscar " => " cla of
+                      Just (ini,fin) -> case buscar " where" fin of
+                                        Just (i,f) -> (tails i) !! 3
+                                        Nothing -> ""
+                      Nothing        -> ""
+
+strToFirmaCla :: String -> String -- Esto tal vez sacarlo, unificar nombre y firma en uno
+strToFirmaCla cla = ""
+
+---
+
+-- Aca armo la funcion, recibo la primera linea de la funcion y toda la lista que sigue
+-- para poder agregar los comentarios y los patrones
+armarFuncion :: String -> [TipoPartCodigo] -> (Funcion,[TipoPartCodigo])
+armarFuncion fun (x:xs) = armarFuncion' xs (Funcion (nombreFuncion fun) (firmaFuncion fun) [] Nothing)
+--armarFuncion fun _ = armarFuncion' [] (Funcion (nombreFuncion fun) (firmaFuncion fun) [] Nothing)
+
+armarFuncion' :: [TipoPartCodigo] -> Funcion -> (Funcion,[TipoPartCodigo])
+armarFuncion' ((TPCFuncion fun):xs) nuevaFun | trace ("armarFuncion' <<< " ++ fun ++ "::::" ++ nombreFtoStr (nombreFun nuevaFun) ++ ">>>>") False = undefined
+armarFuncion' ((TPCFuncionCIL com):xs) nuevaFun = armarFuncion' xs (nuevaFun {comentarioFun = Just com})
+armarFuncion' ((TPCFuncionCML com):xs) nuevaFun = armarFuncion' xs (nuevaFun {comentarioFun = Just com})
+--armarFuncion' ((TPCFuncionInsta fun):xs) nuevaFun = armarFuncion' xs (nuevaFun {whereFun = (whereFun $ nuevaFun) ++ [(armarFuncion fun xs)]})
+--armarFuncion' ((TPCFuncionClase fun):xs) nuevaFun = armarFuncion' xs (nuevaFun {whereFun = (whereFun $ nuevaFun) ++ [(armarFuncion fun xs)]})
+
+-- aca miro que haya indentado y el indentado de la proxima funcion sea mayor al de la linea actual, si es asi debe ser patron de esta
+armarFuncion' ((TPCFuncion fun):xs) nuevaFun | (tieneIndentado fun) && ((indentado fun) > (indentado (nombreFtoStr(nombreFun nuevaFun)))) = agregarPatrones nuevaFun fun xs
+-- aca miro que tenga indentado, pero no es patron, es decir tiene el mismo indentado o menor
+armarFuncion' ((TPCFuncion fun):xs) nuevaFun | (tieneIndentado fun) = armarFuncion' xs (nuevaFun {patronesFun = patronesFun (nuevaFun) ++ [crearPatron fun]})
+armarFuncion' ar nuevaFun = (nuevaFun, ar)
+
+indentado :: String -> Int
+indentado str = indentado' str 0
+
+indentado' :: String -> Int -> Int
+indentado' (' ':xs) conteo = indentado' xs (succ conteo)
+indentado' (_) conteo = conteo
+
+trace_show s x = trace (s ++ ":" ++ show x) x
+
+-- Aca agrego los patrones de cada funcion, recibo la funcion padre y el primer patron y el resto de la lista
+agregarPatrones :: Funcion -> String -> [TipoPartCodigo] -> (Funcion, [TipoPartCodigo])
+--agregarPatrones funPadre patron xs | ((indentado patron) == (indentado (nombreFtoStr(nombreFun funPadre)))) = funPadre{patronesFun = (patronesFun $ funPadre) ++ [crearPatron patron]} 
+-- agregarPatrones funPadre patron (TPCFuncion proxFun:[]) = funPadre{patronesFun = (patronesFun $ funPadre) ++ [crearPatron patron]}
+agregarPatrones funPadre patron xs | trace ("agregarPatrones <<<" ++ nombreFtoStr (nombreFun funPadre) ++ ">>>") False = undefined
+agregarPatrones funPadre patron xs | indentado (patron) > indentado (nombreFtoStr (nombreFun funPadre)) = let (pats, ar) = agregarPatronesRecursivo (crearPatron patron) xs in
+   (funPadre{patronesFun = (patronesFun $ funPadre) ++ [pats]}, ar)
+--agregarPatrones funPadre patron xs = let (pats, ar) = agregarPatronesRecursivo (crearPatron patron) xs in
+--    (funPadre{patronesFun = (patronesFun $ funPadre) ++ [pats]}, ar)
+agregarPatrones funPadre _ ar = (funPadre,ar)
+
+-- Aca me fijo si debo agregar un where dentro del patron
+agregarPatronesRecursivo :: Patron -> [TipoPartCodigo] -> (Patron, [TipoPartCodigo])
+agregarPatronesRecursivo patron (TPCFuncion proxFun:rest) | trace ("agregarPatronesRecursivo : Funcion <<" ++ proxFun ++ ">> : FuncionPatron <<" ++ maybeNombreFuncion(ultimoWherePat patron) ++ ">>") False = undefined
+
+-- si el indentado de la proxima funcion es mayor al de la anterior, agrego al where
+agregarPatronesRecursivo patron (TPCFuncion proxFun:rest) | (indentado proxFun) > (indentado (maybeNombreFuncion(ultimoWherePat patron))) = 
+    case (ultimoWherePat patron) of
+      Just f | trace ("agregarPatronesRecursivo JUST : Funcion <<" ++ nombreFtoStr (nombreFun f) ++ ">> : FuncionPatron <<" ++ maybeNombreFuncion(ultimoWherePat patron) ++ ">>") False -> undefined
+      Nothing | trace ("agregarPatronesRecursivo NOTHING : Funcion <<"++ proxFun ++ ">> : FuncionPatron <<" ++ maybeNombreFuncion(ultimoWherePat patron) ++ ">>") False -> undefined
+      Just f  -> let (resp, ar) = agregarPatrones f proxFun rest in
+          (patron {wherePat = (wherePat $ patron) ++ [resp]}, ar)
+      Nothing -> let (resp, ar)        = armarFuncion proxFun (TPCFuncion proxFun:rest) 
+                     (respPatr, arPat) = agregarPatrones (resp) proxFun ar in
+                       (patron {wherePat = [respPatr]}, arPat) -- no deberia ir ar aca?
+                       
+
+-- agregarPatronesRecursivo patron fun _ = crearPatron fun
+agregarPatronesRecursivo patron rest = (patron, rest)
+
+-- esto busca dentro de los where de un patron, el ultimo
+ultimoWherePat :: Patron -> Maybe Funcion
+ultimoWherePat patron = ultimoWherePat' (wherePat $ patron)
+
+ultimoWherePat' :: [Funcion] -> Maybe Funcion
+ultimoWherePat' ([])   = Nothing
+ultimoWherePat' (x:[]) = Just x
+ultimoWherePat' (_:xs) = ultimoWherePat' xs
+
+nombreFtoStr :: NombreF -> String
+nombreFtoStr (NombreF nom) = nom
+
+maybeNombreFuncion :: Maybe Funcion -> String
+maybeNombreFuncion (Just f) = nombreFtoStr $ nombreFun $ f
+maybeNombreFuncion Nothing = ""
+
+---
+crearPatron linea = Patron (Left (Expresion linea)) [] Nothing
 
 nombreFuncion :: String -> NombreF
-nombreFuncion fun = case buscar "=" fun of
-                      Just (ini,fin) -> NombreF fun
-                      Nothing        -> NombreF ""
+nombreFuncion fun = NombreF fun -- habría ver que querriamos hacer aca
 
 firmaFuncion :: String -> Maybe String
 firmaFuncion fun = case buscar "::" fun of
@@ -394,7 +509,7 @@ datas :: Archivo -> [Data] -- Tipos de dato que genera
 datas (Archivo _ _ d _ _ _) = d
 -- para probar en GHCI : datas $ archivoPruebaDatas
 
-clasePruebaClases = Clase (Just "(Monad m, Monad (t m))") "Transform" "t m" Nothing Nothing
+clasePruebaClases = Clase (Just "(Monad m, Monad (t m))") "Transform" "t m" [] Nothing
 archivoPruebaClases = Archivo (NombreM "") [] [] [clasePruebaClases] [] []
 clases :: Archivo -> [Clase] -- Clases que genera
 clases (Archivo _ _ _ c _ _) = c
@@ -409,8 +524,8 @@ nombres :: Archivo -> [Nombre] -- Lista de clases, datos, funciones, etc incluid
 
 bloqueFuncionPrueba1 = Expresion "a | a < 5 = a + 1"
 bloqueFuncionPrueba2 = Expresion "a = a"
-patronFuncionPrueba = Patron (Left bloqueFuncionPrueba1) Nothing Nothing
-patronFuncionPrueba2 = Patron (Left bloqueFuncionPrueba2 ) Nothing (Just "-- comento esto")
+patronFuncionPrueba = Patron (Left bloqueFuncionPrueba1) [] Nothing
+patronFuncionPrueba2 = Patron (Left bloqueFuncionPrueba2 ) [] (Just "-- comento esto")
 funcionPruebaAgregoFuncion = Funcion (NombreF "miFuncion") (Just "a -> a") [patronFuncionPrueba, patronFuncionPrueba2] Nothing
 archivoConFuncionAgregada = fromQuizas $ agregoFuncion funcionPruebaAgregoFuncion archivoPruebaModulo
 
@@ -432,6 +547,8 @@ sacoFuncion f (Archivo nm im d c ins fa) = Archivo nm im d c ins (sacoFuncion' (
 sacoFuncion' _ []                 = []
 sacoFuncion' x@(Funcion f1 _ _ _) (y@(Funcion f2 _ _ _):ys) | f1 == f2    = sacoFuncion' x ys
                                                             | otherwise   = y : sacoFuncion' x ys
+
+                                                            -- sacar la recursividad
 
 creoFuncionSoloConNombre :: NombreF -> Funcion
 creoFuncionSoloConNombre f = Funcion f Nothing [] Nothing

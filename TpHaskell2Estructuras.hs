@@ -32,7 +32,7 @@ data Codigo = CD Data | CC Clase | CI Instancia | CF Funcion
 data Data = Data {nombreDat :: NombreDeDato, definicionDat :: String, comentarioDat :: Comentario} deriving (Show)
 type NombreDeDato = String
 
-data Clase = Clase {herenciaCla :: Maybe HerenciaClase, nombreCla :: NombreClase, firmaCla :: Firma, whereCla :: Maybe Where, comentarioCla :: Comentario} deriving (Show)
+data Clase = Clase {herenciaCla :: Maybe HerenciaClase, nombreCla :: NombreClase, firmaCla :: Firma, whereCla :: Where, comentarioCla :: Comentario} deriving (Show)
 type NombreClase = String
 type HerenciaClase = String 
 
@@ -45,7 +45,7 @@ data Funcion = Funcion {nombreFun :: NombreF, firmaFun :: Maybe Firma, patronesF
 type Firma = String -- Sinonimos (type)
 
 -- Falta agregarle los argumentos a Patron Argumentos
-data Patron = Patron { blopipePat :: Either Bloque [Pipe], wherePat :: Maybe Where, comentarioPat :: Comentario} deriving (Show)
+data Patron = Patron { blopipePat :: Either Bloque [Pipe], wherePat :: Where, comentarioPat :: Comentario} deriving (Show)
 type Argumentos = String
 type Where = [Funcion]
 data Bloque =   Expresion Resultado | 
