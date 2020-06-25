@@ -20,10 +20,6 @@ instance Monad Quizas where
 
 data Archivo = Archivo {nombreArc :: NombreM, importsArc :: [Importacion], datasArc :: [Data], clasesArc :: [Clase], instancesArc :: [Instancia], funcionesArc :: [Funcion]} -- deriving (Show)
 
-{-
-instance Show Archivo where
-    show = undefined -- mostrarArchivo
--}
 
 -- instance Eq Archivo where
 
