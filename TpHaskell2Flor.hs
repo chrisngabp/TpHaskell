@@ -179,3 +179,84 @@ creoFuncionSoloConNombre f = Funcion f Nothing [] Nothing
 -- Esto no es necesario sacoFuncion f (Archivo nm im d c ins fa) = Error "La funcion no existe"
 
 --sacoFuncion :: NombreF -> Archivo -> Archivo -- Devuelve el Archivo sacando una función
+
+-- Flor
+agregoDato :: Data -> Archivo -> Quizas Archivo -- Agrega un tipo de dato
+agregoDato d (Archivo nm im ds c ins fa) | yaExisteDato d ds = Error "El dato ya existe"
+agregoDato d (Archivo nm im ds c ins fa) = OK (Archivo nm im (d:ds) c ins fa)
+
+yaExisteDato :: Data -> [Data] -> Bool
+yaExisteDato d (d2:ds) = if dataIguales d d2 then True else yaExisteDato d ds
+yaExisteDato _ _ = False
+
+dataIguales :: Data -> Data -> Bool
+dataIguales (Data nombre definicion _ ) (Data otroNombre otraDefinicion _ ) = (nombre == otroNombre) && (definicion == otraDefinicion)
+
+sacoDato :: NombreM -> Archivo -> Archivo -- Saca un tipo de dato
+sacoDato d2 (Archivo nm im d c ins fa) = Archivo nm im d c ins (sacoDato' (creoDatoSoloConNombre d2) fa)
+
+sacoDato' _ []                 = []
+sacoDato' x@(Data d1 _ _) (y@(Data d2 _ _):ys) | d1 == d2    = sacoDato' x ys
+                                               | otherwise   = y : sacoDato' x ys
+creoDatoSoloConNombre :: NombreM -> Data
+creoDatoSoloConNombre nombre = Data nombre Nothing Nothing
+
+agregoInstancia :: Instancia -> Archivo -> Quizas Archivo -- Agrega una instancia
+agregoInstancia instancia (Archivo nm im ds c ins fa) | yaExistInstancia instancia ins = Error "La instancia ya existe"
+agregoDato instancia (Archivo nm im ds c ins fa) = OK (Archivo nm im ds c (instancia:ins) fa)
+
+yaExisteInstancia :: Instancia -> [Instancia] -> Bool
+yaExisteInstancia instancia (otraInstancia:inst) = if instIguales instancia otraInstancia then True else yaExisteInstancia instancia inst
+yaExisteInstancia _ _ = False
+
+instIguales :: Instancia -> Instancia -> Bool
+instIguales (Instancia nombre nombreClase _ _ ) (Instancia otroNombre otroNombreClase _ _ ) = (nombre == otroNombre) && (nombreClase == otroNombreClase)
+
+{--
+agregoElemento :: E -> Archivo -> Quizas Archivo
+agregoElemento elemento archivo | yaExisteElemento elemento archivo = Error "El elemento ya existe"
+agregoElemento elemento (Archivo nm im ds c ins fa) | elemento is Instancia = OK (Archivo nm im ds c (elemento:ins) fa)
+                                                    | elemento is Data = OK (Archivo nm im (elemento:ds) c ins fa)
+--} -- TO DO ver el operador "is"
+
+sacoInstancia :: NombreClase -> NombreClase -> Archivo -> Archivo -- Saca una instancia de un Dato y Clase
+sacoInstancia instancia (Archivo nm im d c ins fa) = Archivo nm im d c (sacoInstancia' (creoInstanciaSoloConNombre instancia) ins) fa
+
+sacoInstancia' _ []                 = []
+sacoInstancia' x@(Instancia d1 _ _) (y@(Instancia d2 _ _):ys) | d1 == d2    = sacoInstancia' x ys
+                                               | otherwise   = y : sacoInstancia' x ys
+
+creoInstanciaSoloConNombre :: NombreClase -> Instancia
+creoInstanciaSoloConNombre nombre = Instancia nombre Nothing Nothing Nothing
+
+toNombreF :: String -> NombreF -- nombre de la funcion
+toNombreF nombre = NombreF nombre      -- Validar con los chicos
+
+toNombreM :: String -> NombreM
+toNombreM nombre = NombreM nombre
+{--
+toNombre :: EsNombre a => a -> Nombre
+toNombre nombre --}
+
+fromNombre :: Nombre -> String
+fromNombre nombre | NM = fromNombreM nombre
+                  | NF = fromNombreF nombre
+
+fromNombreM :: NombreM -> String
+fromNombreM (NombreM nombre) = nombre
+
+fromNombreF :: NombreF -> String
+fromNombreF (NombreF nombre) = nombre
+
+showNombre :: Nombre -> String -- Si fuera un print, devolveria IO
+showNombre nombre = fromNombre nombre
+
+{--
+comentario :: ConComentario a => a -> Comentario
+comentario (ConComentario a)
+
+
+type Comentario = Maybe String
+class ConComentario a where
+    comentario :: a -> Maybe Comentario
+--}
