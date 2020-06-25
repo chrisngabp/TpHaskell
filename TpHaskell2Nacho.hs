@@ -179,3 +179,111 @@ creoFuncionSoloConNombre f = Funcion f Nothing [] Nothing
 -- Esto no es necesario sacoFuncion f (Archivo nm im d c ins fa) = Error "La funcion no existe"
 
 --sacoFuncion :: NombreF -> Archivo -> Archivo -- Devuelve el Archivo sacando una función
+
+
+
+
+
+-- data Opciones = Opciones {largoLinea :: Int, anchoTab :: Int, comentarioInline :: Bool, compacto :: Bool, colores :: Bool} -- Pueden agregar otros parámetros.
+
+{-
+largoLinea: corta las líneas cada x caracteres, pero no podemos cortar en medio de una palabra. 
+    Una barra "\" indica la continuación de la línea anterior.
+anchoTab: determina el ancho de los tabs. 1 espacio, 2 espacios, 3 espacios...
+comentarioInline: 
+compacto: Borraría los saltos de línea intermedios, siempre y cuando todo siga funcionando. Quedaría visualmente feo.
+colores: activa colores para lo que definamos. Es más avanzado.
+-}
+
+-- defaultOpciones :: Opciones
+
+data Archivo = Archivo {nombreArc :: NombreM, importsArc :: [Importacion], datasArc :: [Data], clasesArc :: [Clase], instancesArc :: [Instancia], funcionesArc :: [Funcion]} deriving (Show)
+
+instance Show Archivo where
+    show = showArchivo
+
+-- showArchivo :: Opciones -> Archivo -> String -- Muestra el archivo con formato
+showArchivo :: Archivo -> String 
+showArchivo a@(Archivo {nombreArc = nA})                = "module " ++ nA ++ " where" ++ "\n" ++ showArchivo(a {nombreArc = nA})    -- TODO: Ver cómo no volver a entrar en esta línea
+
+-- showArchivo a@(Archivo {importsArc = []})            = ""
+showArchivo a@(Archivo {importsArc = (imp:imps)})       = showImportacion imp ++ "\n" ++ showArchivo(a {importsArc = imps})
+
+-- showArchivo a@(Archivo {datasArc = []})              = ""
+showArchivo a@(Archivo {datasArc = (d:ds)})             = showData d ++ "\n" ++ showArchivo (a {datasArc = ds})
+
+-- showArchivo a@(Archivo {clasesArc = []})             = ""
+showArchivo a@(Archivo {clasesArc = (c:cs)})            = showClase c ++ "\n" ++ showArchivo (a {clasesArc = cs})
+
+-- showArchivo a@(Archivo {instancesArc = []})          = ""
+showArchivo a@(Archivo {instancesArc = (inst:insts)})   = showInstance inst ++ "\n" ++ showArchivo (a {instancesArc = insts})
+
+-- showArchivo a@(Archivo {funcionesArc = []})          = ""
+showArchivo a@(Archivo {funcionesArc = (f:fs)})         = showFuncion f ++ "\n" ++ showArchivo (a {funcionesArc = fs})
+
+
+instance Show Importacion where
+    show = showImportacion
+
+showImportacion :: Importacion -> String
+showImportacion f@(Importacion {comentarioImp = Just c})    = intercalate "\n" (map ("-- " ++) (lineas c)) ++ "\n" ++ showImportacion (f {comentarioImp = Nothing})
+showImportacion f@(Importacion {nombreImp = nI})            = "import " ++ nI ++ "\n"
+
+
+instance Show Data where
+    show = showData
+
+showData :: Importacion -> String
+showData f@(Importacion {comentarioDat = Just c})                 = intercalate "\n" (map ("-- " ++) (lineas c)) ++ "\n" ++ showData (f {comentarioDat = Nothing})
+showData f@(Importacion {nombreDat = nomD, definicionDat = defD}) = "data " ++ nomD ++ " = " ++ defD ++ "\n"
+
+
+instance Show Clase where
+    show = showClase
+
+showClase :: Clase -> String
+showClase c@(Clase {comentarioCla = Just c})                = intercalate "\n" (map ("-- " ++) (lineas c)) ++ "\n" ++ showClase (c {comentarioCla = Nothing})
+showClase c@(Clase {herenciaCla = herC, nombreCla = nomC})  = "class " ++ herC ++ " => " ++ nomC ++ " where" ++ "\n" ++ showClase (c {nombreCla = Nothing})
+showClase c@(Clase {nombreCla = nomC})                      = "class " ++ nomC ++ " where \n" ++ showClase (c {nombreCla = Nothing})    -- TODO: Sirve pasar el nombre a Maybe?
+showClase c@(Clase {firmaCla = firmaC, whereCla = Just whereC})  = firmaC ++ " " ++ showClaseWhere whereC  -- TODO: Hacer. Sirve lo mismo para Función?
+showClase c@(Clase {firmaCla = firmaC})                     = firmaC
+
+
+instance Show Instance where
+    show = showInstance
+
+showInstance :: Instance -> String
+showInstance c@(Instance {comentarioIns = Just c})                  = intercalate "\n" (map ("-- " ++) (lineas c)) ++ "\n" ++ showInstance (c {comentarioIns = Nothing})
+showInstance c@(Instance {nombreIns = nomI, nombreDatoIns = nomDI}) = "instance " ++ nomI ++ nomDI ++ " where \n" ++ showInstance (c {nombreIns = Nothing})    -- TODO: Sirve pasar el nombre a Maybe?
+showInstance c@(Instance {whereIns = whereInst})                    = firmaC ++ " " ++ showInstanceWhere whereInst  -- TODO: Hacer. Sirve lo mismo para Función?
+
+{- TODO:
+- show nombre archivo
+- pasar nombreClase a Maybe String ?
+- Hacer showClaseWhere. Se puede reutilizar para Funcion e Instance (ver definición. Por qué no es maybe Where?) 
+-}
+
+
+instance Show Funcion where
+    show = showFuncion
+
+showFuncion :: Funcion -> String
+showFuncion f@(Funcion {comentarioFun = Just c})                   = intercalate "\n" (map ("-- " ++) (lineas c)) ++ "\n" ++ showFuncion (f {comentarioFun = Nothing})
+showFuncion f@(Funcion {nombreFun = n, firmaFun = Just miFirma})   = n ++ " :: " ++ miFirma ++ "\n" ++ showFuncion (f {firmaFun = Nothing})
+showFuncion f@(Funcion {patronesFun = []})                         = ""
+showFuncion f@(Funcion {nombreFun = nf, patronesFun = (p:ps)})     = showFuncionPatron' nf p ++ "\n" ++ showFuncion (f {patronesFun = ps})
+
+-- showFuncionPatron f@(Funcion {patronesFun = []})                   = "\n"
+-- showFuncionPatron f@(Funcion {nombreFun = nf, patronesFun = (p:ps)}) = showFuncionPatron' nf p ++ "\n" ++ showFuncionPatron (f {patronesFun = ps})
+
+showFuncionPatron' :: nombreFun -> Patron -> String
+showFuncionPatron' nf p@(Patron {comentarioPt = Nothing})        = showFuncionPatronArg nf p
+
+showFuncionPatronArg :: nombreFun -> Patron -> String
+showFuncionPatronArg nf p@(Patron {argumentosPt = a})            = nf ++ " " ++ a ++ showFuncionPatronPipes p
+
+showFuncionPatronPipes p@(Patron {blopipePat = Left (Expresion bloque c)}) = " = " ++ bloque ++ showFuncionPatronWhere p
+showFuncionPatronPipes p@(Patron {blopipePat = Right []}) = ""
+showFuncionPatronPipes p@(Patron {blopipePat = Right (Pipe condix (Expresion bloque _):pis)}) = "\n    | " ++ condix ++ " = " ++ bloque ++ showFuncionPatronPipes (p {patron = Right pis})
+
+showFuncionPatronWhere _ = ""
