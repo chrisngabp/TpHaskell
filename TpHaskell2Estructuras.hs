@@ -80,9 +80,11 @@ data Nombre = NM NombreM | NF NombreF
 
 data Opciones = Opciones {largoLinea :: Int, anchoTab :: Int, comentarioInline :: Bool, compacto :: Bool, colores :: Bool} -- Pueden agregar otros parámetros.
 
+class ConNombre a where
+    nombre :: a -> a
+
 {-
 EsNombre: Contiene a NombreM y NombreF
 ConNombre: Clase con los datos que tienen nombre.
-ConComentario: Clase con los datos que pueden contener comentario.
 -}
 
