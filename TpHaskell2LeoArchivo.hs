@@ -95,7 +95,8 @@ maybeConcatenoComentario c' (Just c) = Just $ c ++ "\n" ++ c'
 
 -- Para probar esto -> aC <$> dCom "string con cosas"
 
-archivoCargado = loadFile $ "/Users/cpanetta/Desktop/Fracciones.hs"
+-- Descomentar esto para probar
+--archivoCargado = loadFile $ "/{fileroute}/ArchivoPrueba.hs"
 
 -- Esto lo uso para probar
 
@@ -256,7 +257,8 @@ esInstancia a = tieneInstancia && tieneWhere
                             Just (ini,fin) -> fin == " where"
                             Nothing        -> False
 
-pruebaArchivoALista = quitarQuizas $ (aC <$> dCom archivoCargado)
+-- Descomentar esto para probar
+--pruebaArchivoALista = quitarQuizas $ (aC <$> dCom archivoCargado)
 
 ----
 
@@ -453,7 +455,8 @@ firmaFuncion fun = case buscar "::" fun of
 archivoVacio :: Archivo
 archivoVacio = Archivo (NombreM "") [] [] [] [] []
 
-archivoArmado = armarArchivo (dCod $ pruebaArchivoALista) archivoVacio
+-- Descomentar esto para probar
+--archivoArmado = armarArchivo (dCod $ pruebaArchivoALista) archivoVacio
 
 
 

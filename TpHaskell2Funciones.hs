@@ -2,7 +2,7 @@ module TpHaskell2Funciones where
 
 import TpHaskell2Estructuras
 
--- Esto lo hicimos entre todos
+-- Chris G.
 {-
 -
 - INICIO DE FUNCIONES
@@ -87,6 +87,90 @@ creoFuncionSoloConNombre f = Funcion f Nothing [] Nothing
 --sacoFuncion :: NombreF -> Archivo -> Archivo -- Devuelve el Archivo sacando una función
 
 -- Hasta acá hicimos entre todos
+
+-- Chris G.
+
+-- Arc Vacio 
+-- archivoVacio :: Archivo
+-- archivoVacio = (Archivo Nothing [] [] [] [] [])
+
+
+-- --AGREGAR COMENTARIOS 
+
+-- Comentario Data 
+agregarComentarioAData :: Data -> String -> Data
+agregarComentarioAData (Data nd cod _) x = (Data nd cod (Just x))
+
+-- Comentario Funcion OK
+agregarComentarioAFuncion :: Funcion -> String -> Funcion
+agregarComentarioAFuncion (Funcion nomb mfir pat _) x = (Funcion nomb mfir pat (Just x)) 
+
+-- Comentario Instancia 
+agregarComentarioAInstancia :: Instancia -> String -> Instancia
+agregarComentarioAInstancia (Instancia ncla nins [] _) x = (Instancia ncla nins [] (Just x))
+
+agregoComentarioAListaDeInstancias :: [Instancia] -> String -> String -> String -> [Instancia]
+agregoComentarioAListaDeInstancias [] _ _ _ = [] 
+agregoComentarioAListaDeInstancias ( (Instancia ncla nins ecu mcom ) : xs ) x y com | ncla == x && nins == y =  ( (Instancia ncla nins ecu (Just com)): xs )
+agregoComentarioAListaDeInstancias ( (Instancia ncla nins ecu mcom ) : xs ) x y com =  ( (Instancia ncla nins ecu mcom ) : (agregoComentarioAListaDeInstancias xs x y com))
+
+
+-- -- Comentario Clase 
+-- agregoComentarioAClase :: Archivo -> String -> String -> Archivo
+-- agregoComentarioAClase (Archivo nom im dat cla ins fun) x y = (Archivo nom im dat (agregarComentarioAListaDeClases c x y) ins fun)
+
+-- agregarComentarioAListaDeClases :: [Clase] -> String -> String -> [Clase]
+-- agregarComentarioAListaDeClases [] _ _ = []
+-- agregarComentarioAListaDeClases ((Clase ncla tdat fun mcom):xs) x y | ncla == x = ((Clase ncla tdat fun (Just y)):xs)
+-- agregarComentarioAListaDeClases ((Clase ncla tdat fun mcom):xs) x y = ((Clase ncla tdat fun mcom): (agregarComentarioAListaDeClases xs x y))
+
+
+-- --QUITAR COMENTARIOS
+
+eliminarComentarioAData :: Data -> Data
+eliminarComentarioAData (Data nd cod _) = (Data nd cod Nothing)
+
+eliminarComentarioAFuncion :: Funcion -> Funcion
+eliminarComentarioAFuncion (Funcion nomb mfir pat _) = (Funcion nomb mfir pat Nothing)
+
+eliminarComentarioAInstancia :: Instancia -> Instancia
+eliminarComentarioAInstancia (Instancia ncla nins [] _) = (Instancia ncla nins [] Nothing)
+
+-- -- eliminoComentarioListaInstancias
+
+
+-- instancias :: NombreM -> Archivo -> Quizas [Instancias]  -- Devuelve las instancias definidas de un tipo de dato
+-- instancias (Archivo nm _ _ _ _ _) (Archivo instancesArc) = Maybe [Instancias]
+
+
+-- nombre :: ConNombre a => a -> Nombre
+-- nombre (_ nd _ _)     = nd 
+-- nombre (_ nomb _ _ _) = nomb
+
+
+-- nombres :: Archivo -> [Nombres]
+-- nombres (Archivo (Just mnm) im dat cla ins fun) = listar mnm ++ listar im ++ listar dat ++ listar cla ++ listar ins ++ listar fun
+
+-- listar [] = Nothing
+-- listar (x:[]) = "\n" ++ show x ++ "\n"
+-- listar (x:xs) = "\n" ++ show x ++ listar xs
+
+
+-- getFuncion :: NombreF -> Archivo -> Quizas Funcion -- Busca una función
+-- getFuncion (Funcion _ x _ _ _) (FuncionesArc[Funcion]) = Maybe [Funcion]
+
+-- reemplazoFuncion :: NombreF -> Funcion -> Archivo -> Quizas Archivo --Reemplazo una función con una nueva
+-- reemplazoFuncion (Funcion _ x _ _ _) fun = Maybe (Archivo _ _ _ _ _ [Funcion x])
+
+
+
+-- buscoFuncion :: String -> Archivo -> [Funcion] -- Devuelve las funciones en donde se encuentra un texto
+-- buscoFuncion x@(Funcion x _ _ _) (FuncionesArc:xs) = Maybe [Funcion]
+
+-- sustituir :: String -> String -> Archivo -> Quizas Archivo -- Reemplaza y verifica que no se dupliquen nombres de funciones, datos (y parámetros ?)
+-- sustituir buscoFuncion x = (Archivo _ _ _ _ _ (Funcion x _ _ _)) -- Busco la funcion y si esta la reemplazo con x ? 
+
+-- Hasta aca hizo Chris G.
 
   
 -- Flor
