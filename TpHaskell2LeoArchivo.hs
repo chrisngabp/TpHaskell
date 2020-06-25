@@ -373,9 +373,10 @@ armarFuncion' :: [TipoPartCodigo] -> Funcion -> (Funcion,[TipoPartCodigo])
 armarFuncion' ((TPCFuncion fun):xs) nuevaFun | trace ("armarFuncion' <<< " ++ fun ++ "::::" ++ nombreFtoStr (nombreFun nuevaFun) ++ ">>>>") False = undefined
 armarFuncion' ((TPCFuncionCIL com):xs) nuevaFun = armarFuncion' xs (nuevaFun {comentarioFun = Just com})
 armarFuncion' ((TPCFuncionCML com):xs) nuevaFun = armarFuncion' xs (nuevaFun {comentarioFun = Just com})
---armarFuncion' ((TPCFuncionInsta fun):xs) nuevaFun = armarFuncion' xs (nuevaFun {whereFun = (whereFun $ nuevaFun) ++ [(armarFuncion fun xs)]})
---armarFuncion' ((TPCFuncionClase fun):xs) nuevaFun = armarFuncion' xs (nuevaFun {whereFun = (whereFun $ nuevaFun) ++ [(armarFuncion fun xs)]})
-
+armarFuncion' ((TPCFuncionClase fun):xs) nuevaFun | (tieneIndentado fun) && ((indentado fun) > (indentado (nombreFtoStr(nombreFun nuevaFun)))) = agregarPatrones nuevaFun fun xs
+armarFuncion' ((TPCFuncionClase fun):xs) nuevaFun | (tieneIndentado fun) = armarFuncion' xs (nuevaFun {patronesFun = patronesFun (nuevaFun) ++ [crearPatron fun]})
+armarFuncion' ((TPCFuncionInsta fun):xs) nuevaFun | (tieneIndentado fun) && ((indentado fun) > (indentado (nombreFtoStr(nombreFun nuevaFun)))) = agregarPatrones nuevaFun fun xs
+armarFuncion' ((TPCFuncionInsta fun):xs) nuevaFun | (tieneIndentado fun) = armarFuncion' xs (nuevaFun {patronesFun = patronesFun (nuevaFun) ++ [crearPatron fun]})
 -- aca miro que haya indentado y el indentado de la proxima funcion sea mayor al de la linea actual, si es asi debe ser patron de esta
 armarFuncion' ((TPCFuncion fun):xs) nuevaFun | (tieneIndentado fun) && ((indentado fun) > (indentado (nombreFtoStr(nombreFun nuevaFun)))) = agregarPatrones nuevaFun fun xs
 -- aca miro que tenga indentado, pero no es patron, es decir tiene el mismo indentado o menor
