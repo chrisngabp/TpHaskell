@@ -230,14 +230,16 @@ eliminarComentarioEnInstancia (Instancia ncla nins [] _) = (Instancia ncla nins 
 -- eliminoComentarioListaInstancias
 
 
+instancias :: NombreM -> Archivo -> Quizas [Instancias]  -- Devuelve las instancias definidas de un tipo de dato
+instancias (Archivo nm _ _ _ _ _) (Archivo instancesArc) = Maybe [Instancias]
 
 
+nombre :: ConNombre a => a -> Nombre
+nombre (_ nd _ _)     = nd 
+nombre (_ nomb _ _ _) = nomb
 
 
-
-
---Mostrar listado del Archivo
-nombres :: Archivo -> String
+nombres :: Archivo -> [Nombres]
 nombres (Archivo (Just mnm) im dat cla ins fun) = listar mnm ++ listar im ++ listar dat ++ listar cla ++ listar ins ++ listar fun
 
 listar [] = Nothing
@@ -246,14 +248,15 @@ listar (x:xs) = "\n" ++ show x ++ listar xs
 
 
 getFuncion :: NombreF -> Archivo -> Quizas Funcion -- Busca una función
-getFuncion (Funcion _ mfir pat mcom) x = \"" ++ x ++ ""\""" --completar
+getFuncion (Funcion _ x _ _ _) (FuncionesArc[Funcion]) = Maybe [Funcion]
+
+reemplazoFuncion :: NombreF -> Funcion -> Archivo -> Quizas Archivo --Reemplazo una función con una nueva
+reemplazoFuncion (Funcion _ x _ _ _) fun = Maybe (Archivo _ _ _ _ _ [Funcion x])
 
 
 
--- Esto no es necesario sacoFuncion f (Archivo nm im d c ins fa) = Error "La funcion no existe"
+buscoFuncion :: String -> Archivo -> [Funcion] -- Devuelve las funciones en donde se encuentra un texto
+buscoFuncion x@(Funcion x _ _ _) (FuncionesArc:xs) = Maybe [Funcion]
 
---sacoFuncion :: NombreF -> Archivo -> Archivo -- Devuelve el Archivo sacando una función
-
-
--- Archivo nombre maybe comentarios importacion data clase funcion instancias
--- Archivo nm im d c ins fa
+sustituir :: String -> String -> Archivo -> Quizas Archivo -- Reemplaza y verifica que no se dupliquen nombres de funciones, datos (y parámetros ?)
+sustituir buscoFuncion x = (Archivo _ _ _ _ _ (Funcion x _ _ _)) -- Busco la funcion y si esta la reemplazo con x ?
