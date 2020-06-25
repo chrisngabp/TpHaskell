@@ -154,6 +154,10 @@ patronFuncionPrueba2 = Patron (Left bloqueFuncionPrueba2 ) Nothing (Just "-- com
 funcionPruebaAgregoFuncion = Funcion (NombreF "miFuncion") (Just "a -> a") [patronFuncionPrueba, patronFuncionPrueba2] Nothing
 archivoConFuncionAgregada = fromQuizas $ agregoFuncion funcionPruebaAgregoFuncion archivoPruebaModulo
 
+
+
+-- FUNCION
+
 agregoFuncion :: Funcion -> Archivo -> Quizas Archivo -- Agrega una función
 -- tiene un Quizas archivo porque si ya existe la funcion devuelvo un error
 agregoFuncion f (Archivo nm im d c ins fa) | yaExisteFuncion f fa = Error "La funcion ya existe"
@@ -177,14 +181,14 @@ creoFuncionSoloConNombre :: NombreF -> Funcion
 creoFuncionSoloConNombre f = Funcion f Nothing [] Nothing
 
 
--- Arc Vacio OK
+-- Arc Vacio 
 archivoVacio :: Archivo
 archivoVacio = (Archivo Nothing [] [] [] [] [])
 
 
 --AGREGAR COMENTARIOS 
 
--- Comentario Data OK
+-- Comentario Data 
 agregarComentarioAData :: Data -> String -> Data
 agregarComentarioAData (Data nd cod _) x = (Data nd cod (Just x))
 
@@ -192,29 +196,48 @@ agregarComentarioAData (Data nd cod _) x = (Data nd cod (Just x))
 agregarComentarioAFuncion :: Funcion -> String -> Funcion
 agregarComentarioAFuncion (Funcion nomb mfir pat _) x = (Funcion nomb mfir pat (Just x)) 
 
--- Comentario Instancia OK
+-- Comentario Instancia 
 agregarComentarioAInstancia :: Instancia -> String -> Instancia
 agregarComentarioAInstancia (Instancia ncla nins [] _) x = (Instancia ncla nins [] (Just x))
 
 agregoComentarioAListaDeInstancias :: [Instancia] -> String -> String -> String -> [Instancia]
-agregoComentarioAListaDeInstancias  _ _ _ [] = [] 
+agregoComentarioAListaDeInstancias [] _ _ _ = [] 
 agregoComentarioAListaDeInstancias ( (Instancia ncla nins ecu mcom ) : xs ) x y com | ncla == x && nins == y =  ( (Instancia ncla nins ecu (Just com)): xs )
 agregoComentarioAListaDeInstancias ( (Instancia ncla nins ecu mcom ) : xs ) x y com =  ( (Instancia ncla nins ecu mcom ) : (agregoComentarioAListaDeInstancias xs x y com))
 
 
--- Comentario Clase OK
+-- Comentario Clase 
 agregoComentarioAClase :: Archivo -> String -> String -> Archivo
 agregoComentarioAClase (Archivo nom im dat cla ins fun) x y = (Archivo nom im dat (agregarComentarioAListaDeClases c x y) ins fun)
 
 agregarComentarioAListaDeClases :: [Clase] -> String -> String -> [Clase]
-agregarComentarioAListaDeClases _ _ [] = []
+agregarComentarioAListaDeClases [] _ _ = []
 agregarComentarioAListaDeClases ((Clase ncla tdat fun mcom):xs) x y | ncla == x = ((Clase ncla tdat fun (Just y)):xs)
 agregarComentarioAListaDeClases ((Clase ncla tdat fun mcom):xs) x y = ((Clase ncla tdat fun mcom): (agregarComentarioAListaDeClases xs x y))
 
 
---Mostrar listado del Archivo OK
-nombres :: Archivo -> [Nombre]
-nombres (Archivo im dat cla ins fun) = listar im ++ listar dat ++ listar cla ++ listar ins ++ listar fun
+--QUITAR COMENTARIOS
+
+eliminarComentarioAData :: Data -> Data
+eliminarComentarioAData (Data nd cod _) = (Data nd cod Nothing)
+
+eliminarComentarioAFuncion :: Funcion -> Funcion
+eliminarComentarioAFuncion (Funcion nomb mfir pat _) = (Funcion nomb mfir pat Nothing)
+
+eliminarComentarioAInstancia :: Instancia -> Instancia
+eliminarComentarioEnInstancia (Instancia ncla nins [] _) = (Instancia ncla nins [] Nothing)
+
+-- eliminoComentarioListaInstancias
+
+
+
+
+
+
+
+
+--Mostrar listado del Archivo
+nombres :: Archivo -> String
 nombres (Archivo (Just mnm) im dat cla ins fun) = listar mnm ++ listar im ++ listar dat ++ listar cla ++ listar ins ++ listar fun
 
 listar [] = Nothing
@@ -222,8 +245,8 @@ listar (x:[]) = "\n" ++ show x ++ "\n"
 listar (x:xs) = "\n" ++ show x ++ listar xs
 
 
-
-
+getFuncion :: NombreF -> Archivo -> Quizas Funcion -- Busca una función
+getFuncion (Funcion _ mfir pat mcom) x = \"" ++ x ++ ""\""" --completar
 
 
 
