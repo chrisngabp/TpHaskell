@@ -45,7 +45,7 @@ data Funcion = Funcion {nombreFun :: NombreF, firmaFun :: Maybe Firma, patronesF
 type Firma = String -- Sinonimos (type)
 
 -- Falta agregarle los argumentos a Patron Argumentos
-data Patron = Patron { blopipePat :: Either Bloque [Pipe], wherePat :: Maybe Where, comentarioPat :: Comentario} deriving (Show)
+data Patron = Patron { blopipePat :: Either Bloque [Pipe], wherePat :: Where, comentarioPat :: Comentario} deriving (Show)
 type Argumentos = String
 type Where = [Funcion]
 data Bloque =   Expresion Resultado | 

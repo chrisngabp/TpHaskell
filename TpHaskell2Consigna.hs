@@ -43,8 +43,6 @@ type Resultado = String
 type ResultadoBool = String
 data Pipe = Pipe ResultadoBool Bloque 
 
--- TODO: chequear que cosas tendrian Maybe Comentario
-
 -- extrae cualquier comentario de cualquier tipo de dato
 class ConComentario where
 	comentario :: a -> Maybe Comentario
@@ -66,17 +64,12 @@ miArchivo = return archivoVacio
 	>>= show
 
 data Comentario 
--- Si la linea arranca como comentario, el comentario es de lo que sigue, y sino es inline, es de la linea
 
-
--- DUDA QUE SERIA EL PATRON??
 Patron: Tipo de dato que contiene el patrón de una función, su resultado, where, etc
 - Hacerlo pertenecer a Eq y Show
 
 Bloque: expresiones, let, case .. of, if ... then .. else ..., 
 - Hacerlo pertenecer a Eq y Show
-
--- NO SE ENTIENDE LO DE ABAJO
 
 type Comentario = String
 newtype NombreM = NombreM String -- Nombre válido para módulos, datos, etc.
