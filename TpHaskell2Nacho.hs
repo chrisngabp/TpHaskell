@@ -258,9 +258,10 @@ showInstance c@(Instance {nombreIns = nomI, nombreDatoIns = nomDI}) = "instance 
 showInstance c@(Instance {whereIns = whereInst})                    = firmaC ++ " " ++ showInstanceWhere whereInst  -- TODO: Hacer. Sirve lo mismo para Función?
 
 {- TODO:
-- show nombre archivo
+- pasar nombreArchivo a Maybe String ?
 - pasar nombreClase a Maybe String ?
 - Hacer showClaseWhere. Se puede reutilizar para Funcion e Instance (ver definición. Por qué no es maybe Where?) 
+- Terminar showFuncion
 -}
 
 
