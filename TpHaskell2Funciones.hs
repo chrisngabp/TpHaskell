@@ -97,22 +97,22 @@ creoFuncionSoloConNombre f = Funcion f Nothing [] Nothing
 
 -- --AGREGAR COMENTARIOS 
 
--- -- Comentario Data 
--- agregarComentarioAData :: Data -> String -> Data
--- agregarComentarioAData (Data nd cod _) x = (Data nd cod (Just x))
+-- Comentario Data 
+agregarComentarioAData :: Data -> String -> Data
+agregarComentarioAData (Data nd cod _) x = (Data nd cod (Just x))
 
--- -- Comentario Funcion OK
--- agregarComentarioAFuncion :: Funcion -> String -> Funcion
--- agregarComentarioAFuncion (Funcion nomb mfir pat _) x = (Funcion nomb mfir pat (Just x)) 
+-- Comentario Funcion OK
+agregarComentarioAFuncion :: Funcion -> String -> Funcion
+agregarComentarioAFuncion (Funcion nomb mfir pat _) x = (Funcion nomb mfir pat (Just x)) 
 
--- -- Comentario Instancia 
--- agregarComentarioAInstancia :: Instancia -> String -> Instancia
--- agregarComentarioAInstancia (Instancia ncla nins [] _) x = (Instancia ncla nins [] (Just x))
+-- Comentario Instancia 
+agregarComentarioAInstancia :: Instancia -> String -> Instancia
+agregarComentarioAInstancia (Instancia ncla nins [] _) x = (Instancia ncla nins [] (Just x))
 
--- agregoComentarioAListaDeInstancias :: [Instancia] -> String -> String -> String -> [Instancia]
--- agregoComentarioAListaDeInstancias [] _ _ _ = [] 
--- agregoComentarioAListaDeInstancias ( (Instancia ncla nins ecu mcom ) : xs ) x y com | ncla == x && nins == y =  ( (Instancia ncla nins ecu (Just com)): xs )
--- agregoComentarioAListaDeInstancias ( (Instancia ncla nins ecu mcom ) : xs ) x y com =  ( (Instancia ncla nins ecu mcom ) : (agregoComentarioAListaDeInstancias xs x y com))
+agregoComentarioAListaDeInstancias :: [Instancia] -> String -> String -> String -> [Instancia]
+agregoComentarioAListaDeInstancias [] _ _ _ = [] 
+agregoComentarioAListaDeInstancias ( (Instancia ncla nins ecu mcom ) : xs ) x y com | ncla == x && nins == y =  ( (Instancia ncla nins ecu (Just com)): xs )
+agregoComentarioAListaDeInstancias ( (Instancia ncla nins ecu mcom ) : xs ) x y com =  ( (Instancia ncla nins ecu mcom ) : (agregoComentarioAListaDeInstancias xs x y com))
 
 
 -- -- Comentario Clase 
@@ -127,14 +127,14 @@ creoFuncionSoloConNombre f = Funcion f Nothing [] Nothing
 
 -- --QUITAR COMENTARIOS
 
--- eliminarComentarioAData :: Data -> Data
--- eliminarComentarioAData (Data nd cod _) = (Data nd cod Nothing)
+eliminarComentarioAData :: Data -> Data
+eliminarComentarioAData (Data nd cod _) = (Data nd cod Nothing)
 
--- eliminarComentarioAFuncion :: Funcion -> Funcion
--- eliminarComentarioAFuncion (Funcion nomb mfir pat _) = (Funcion nomb mfir pat Nothing)
+eliminarComentarioAFuncion :: Funcion -> Funcion
+eliminarComentarioAFuncion (Funcion nomb mfir pat _) = (Funcion nomb mfir pat Nothing)
 
--- eliminarComentarioAInstancia :: Instancia -> Instancia
--- eliminarComentarioEnInstancia (Instancia ncla nins [] _) = (Instancia ncla nins [] Nothing)
+eliminarComentarioAInstancia :: Instancia -> Instancia
+eliminarComentarioAInstancia (Instancia ncla nins [] _) = (Instancia ncla nins [] Nothing)
 
 -- -- eliminoComentarioListaInstancias
 
