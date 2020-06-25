@@ -95,7 +95,7 @@ maybeConcatenoComentario c' (Just c) = Just $ c ++ "\n" ++ c'
 
 -- Para probar esto -> aC <$> dCom "string con cosas"
 
-archivoCargado = loadFile $ "/Users/cpanetta/Desktop/Fracciones.hs"
+--archivoCargado = loadFile $ "/{fileroute}/ArchivoPrueba.hs"
 
 -- Esto lo uso para probar
 
