@@ -4,3 +4,4 @@ import LoadFile
 import TpHaskell2Estructuras
 import TpHaskell2LeoArchivo
 import TpHaskell2Funciones
+import TpHaskell2MuestroArchivo
