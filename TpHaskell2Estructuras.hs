@@ -1,5 +1,7 @@
 module TpHaskell2Estructuras where
 
+-- Esto lo hicimos entre todos
+
 data Quizas a = Error String | OK a deriving (Show)
 
 instance Functor Quizas where

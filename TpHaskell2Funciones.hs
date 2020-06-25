@@ -2,7 +2,7 @@ module TpHaskell2Funciones where
 
 import TpHaskell2Estructuras
 
--- Esto lo hicimos entre todos
+-- Chris G.
 {-
 -
 - INICIO DE FUNCIONES
